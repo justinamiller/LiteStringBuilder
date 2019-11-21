@@ -10,6 +10,7 @@ namespace CoreConsole
         {
             var fs = new LiteStringBuilder();
             fs.Append("Hello World");
+          
 
             for (var a = 0; a < 50; a++)
             {

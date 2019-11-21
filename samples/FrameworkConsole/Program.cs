@@ -11,7 +11,7 @@ namespace FrameworkConsole
         static void Main(string[] args)
         {
             System.Threading.Thread.Sleep(1000);
-
+ 
             var fs = new LiteStringBuilder();
             fs.Append((float)((float)60.0 / (float)7.0));
             fs.Append("Hello World");

@@ -1,7 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net40;net45;net46;net47;netstandard1.3;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Justin Miller</Authors>
+    <Company>Justin Miller</Company>
+    <RepositoryUrl>https://github.com/justinamiller/LiteStringBuilder</RepositoryUrl>
+    <Description>Alternative to the System.Text.StringBuilder C# class.</Description>
+    <PackageTags>string, stringbuilder</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

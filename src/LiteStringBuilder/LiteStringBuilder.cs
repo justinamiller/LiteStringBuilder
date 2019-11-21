@@ -49,18 +49,23 @@ namespace System.Text
 
         public LiteStringBuilder(int initialCapacity = 32)
         {
-            _charsCapacity = initialCapacity;
-            _buffer = new char[initialCapacity];
+            _charsCapacity = initialCapacity>0 ? initialCapacity: 32;
+            _buffer = new char[_charsCapacity];
         }
 
         public LiteStringBuilder(string value)
         {
             if (value != null)
             {
-                _charsCapacity = value.Length > 32 ? value.Length : 32;
+                _charsCapacity = value.Length;
+                _buffer = new char[_charsCapacity];
+                this.Append(value);
             }
-            _buffer = new char[_charsCapacity];
-            this.Append(value);
+            else
+            {
+                _charsCapacity = 32;
+                _buffer = new char[_charsCapacity];
+            }
         }
 
         public bool IsEmpty()
@@ -174,41 +179,7 @@ namespace System.Text
             _stringGenerated = str;
             _isStringGenerated = true;
         }
-        ///<summary>Caution, allocate some memory</summary>
-        public void Set(object str)
-        {
-            if (str != null)
-            {
-                Set(str.ToString());
-            }
-        }
-
-        ///<summary>Append several params: no memory allocation unless params are of object type</summary>
-        public void Set<T1, T2>(T1 str1, T2 str2)
-        {
-            Clear();
-            Append(str1);
-            Append(str2);
-        }
-
-        ///<summary>Append several params: no memory allocation unless params are of object type</summary>
-        public void Set<T1, T2, T3>(T1 str1, T2 str2, T3 str3)
-        {
-            Clear();
-            Append(str1);
-            Append(str2);
-            Append(str3);
-        }
-
-        ///<summary>Append several params: no memory allocation unless params are of object type</summary>
-        public void Set<T1, T2, T3, T4>(T1 str1, T2 str2, T3 str3, T4 str4)
-        {
-            Clear();
-            Append(str1);
-            Append(str2);
-            Append(str3);
-            Append(str4);
-        }
+ 
         ///<summary>Allocate a little memory (20 byte)</summary>
         public void Set(params object[] str)
         {
@@ -219,9 +190,8 @@ namespace System.Text
             }
         }
 
-        // Append methods, to build the string without allocation
 
-        ///<summary>Reset the _char array</summary>
+        ///<summary>Reset the string to empty</summary>
         public LiteStringBuilder Clear()
         {
             _bufferPos = 0;
@@ -236,6 +206,12 @@ namespace System.Text
             if (n > 0)
             {
                 EnsureCapacity(n);
+#if NET40 || NET46 || NET45
+        for( int i=0; i<n; i++)
+                {
+                    _buffer[_bufferPos + i] = value[i];
+                }
+#else
                 int bytesSize = n * 2;
                 unsafe
                 {
@@ -244,7 +220,9 @@ namespace System.Text
                     {
                         Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
                     }
-                }
+                }  
+#endif
+
 
                 _bufferPos += n;
                 _isStringGenerated = false;
@@ -253,11 +231,13 @@ namespace System.Text
             return this;
         }
 
+        ///<summary>Generate a new line</summary>
         public LiteStringBuilder AppendLine()
         {
             return Append(Environment.NewLine);
         }
 
+        ///<summary>Append a string and new line without memory allocation</summary>
         public LiteStringBuilder AppendLine(string value)
         {
             Append(value);
@@ -401,14 +381,17 @@ namespace System.Text
                 _buffer[_bufferPos++] = '-';
             }
 
-            // Get the 7 meaningful digits as a long
+            // Get the meaningful digits as a long
             int nbDecimals = 0;
-            while (value < 1000000)
+            //while (value < 1000000)
+           while (value < 10000000000000)//14
             {
                 value *= 10;
                 nbDecimals++;
             }
             long valueLong = (long)Math.Round(value);
+
+            int positiveNumber = valueLong > 0 ? 1 : -1;
 
             // Parse the number in reverse order
             int nbChars = 0;
@@ -420,7 +403,7 @@ namespace System.Text
                     isLeadingZero = false;
 
                 //check if needs have to grow more.
-                if (_bufferPos + 2 >= _charsCapacity)
+                if (_bufferPos + nbChars + 2 >= _charsCapacity)
                 {
                     EnsureCapacity(45);
                 }
@@ -428,7 +411,7 @@ namespace System.Text
 
                 // Write the last digit (unless a leading zero)
                 if (!isLeadingZero)
-                    _buffer[_bufferPos + (nbChars++)] = _charNumbers[valueLong % 10];
+                    _buffer[_bufferPos + (nbChars++)] = _charNumbers[(valueLong % 10) * positiveNumber];
 
                 // Add the decimal point
                 if (--nbDecimals == 0 && !isLeadingZero)
