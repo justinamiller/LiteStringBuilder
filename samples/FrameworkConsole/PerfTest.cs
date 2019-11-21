@@ -27,13 +27,13 @@ namespace FrameworkConsole
         private static string StringBuilder()
         {
             m_strBuilder.Length = 0;
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428").Append((float)1.23);
+            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
             return m_strBuilder.ToString();
         }
         private static string CustomCString()
         {
             m_strCustom.Clear();
-            m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428").Append(float.MaxValue);
+            m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
             return m_strCustom.ToString();
         }
 
@@ -45,8 +45,8 @@ namespace FrameworkConsole
             GC.Collect(GC.MaxGeneration);
             GC.WaitForFullGCComplete();
             var current = GC.GetTotalMemory(true);
-            _sw.Restart();
             string lastResult = null;
+            _sw.Restart();
             for (int i = 0; i < 1000; i++)
                 lastResult = test();
             _sw.Stop();

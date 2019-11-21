@@ -259,11 +259,11 @@ namespace System.Text
         {
             if (value)
             {
-                return Append(bool.TrueString);
+                return Append("True");
             }
             else
             {
-                return Append(bool.FalseString);
+                return Append("False");
             }
         }
 
