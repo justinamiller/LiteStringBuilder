@@ -6,8 +6,9 @@
     <Authors>Justin Miller</Authors>
     <Company>Justin Miller</Company>
     <RepositoryUrl>https://github.com/justinamiller/LiteStringBuilder</RepositoryUrl>
-    <Description>Alternative to the System.Text.StringBuilder C# class.</Description>
+    <Description>Faster and less allocation, alternative to the System.Text.StringBuilder C# class.</Description>
     <PackageTags>string, stringbuilder</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -17,5 +18,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
