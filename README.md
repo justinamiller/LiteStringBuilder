@@ -5,6 +5,18 @@ An alternative to the System.Text.StringBuilder C# class.
 ## Why?
 Because System.Text.StringBuilder does actually a lot of memory allocation when appending string, very often it's just not better than a direct string concat.
 
+### Performance
+Here are the four tests profiled: see [PerfTest.cs](https://github.com/justinamiller/LiteStringBuilder/blob/master/samples/FrameworkConsole/PerfTest.cs)
+
+The test consists of creating 1000 string by concatenation of a string, a float, a string, an int, an boolean, a short, and finally doing a replacement of 2 string occurrences.
+
+Method | Allocation | Time
+------------ | ------------- | ------------- 
+string "+" | 347kb | 6.63ms
+string.concat() | 416kb | 6.24ms
+StringBuilder | 2,439kb | 5.76ms
+LiteStringBuilder | 90kb | 3.85ms
+
 ## Supported Platforms
 Currently;
 
@@ -51,14 +63,4 @@ Or reference the LiteStringBuilder.dll assembly that matches your app's platform
     sb.ToString();
 ```
 
-### Performance
-Here are the four tests profiled: see PerfTest.cs
 
-The test consists of creating 1000 string by concatenation of a string, a float, a string, an int, an boolean, a short, and finally doing a replacement of 2 string occurrences.
-
-Method | Allocation | Time
------------- | ------------- | ------------- 
-string "+" | 347kb | 6.63ms
-string.concat() | 416kb | 6.24ms
-StringBuilder | 2,439kb | 5.76ms
-LiteStringBuilder | 90kb | 3.85ms
