@@ -40,7 +40,7 @@ Or reference the LiteStringBuilder.dll assembly that matches your app's platform
     var sb = new LiteStringBuilder("Hello World");
 ```
 
-### Using string builder
+### Using LiteStringBuilder
 ```C#
     //Retrieve an instance from the pool
     var sb = LiteStringBuilder.Create();
