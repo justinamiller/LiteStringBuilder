@@ -180,11 +180,12 @@ namespace StringHelper
             _stringGenerated = str;
             _isStringGenerated = true;
         }
- 
-        ///<summary>Allocate a little memory (20 byte)</summary>
+
+        ///<summary>Will allocate a little memory due to boxing</summary>
         public void Set(params object[] str)
         {
             Clear();
+         
             for (int i = 0; i < str.Length; i++)
             {
                 Append(str[i]);
@@ -300,12 +301,12 @@ namespace StringHelper
 
         public LiteStringBuilder Append(float value)
         {
-            return Append((double)value);
+            return Append(value.ToString(CultureInfo.CurrentCulture));
         }
 
         public LiteStringBuilder Append(decimal value)
         {
-            return Append((double)value);
+            return Append(value.ToString(CultureInfo.CurrentCulture));
         }
 
         public LiteStringBuilder Append(short value)
@@ -358,6 +359,11 @@ namespace StringHelper
         ///<summary>Append a double without memory allocation.</summary>
         public LiteStringBuilder Append(double value)
         {
+            if(double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return Append(value.ToString(CultureInfo.CurrentCulture));
+            }
+
             _isStringGenerated = false;
             EnsureCapacity(45); // Check we have enough buffer allocated to handle most double number
             // Handle the 0 case
@@ -487,7 +493,7 @@ namespace StringHelper
         }
 
 
-        //   [MethodImpl(MethodImplOptions.AggressiveInlining)]
+         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
         {
             if (_bufferPos + appendLength > _charsCapacity)
