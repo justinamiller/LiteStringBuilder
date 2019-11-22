@@ -359,9 +359,14 @@ namespace StringHelper
         ///<summary>Append a double without memory allocation.</summary>
         public LiteStringBuilder Append(double value)
         {
-            if(double.IsNaN(value) || double.IsInfinity(value))
+            return Append(value.ToString(CultureInfo.CurrentCulture));
+        }
+
+        private void InternalAppend(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
             {
-                return Append(value.ToString(CultureInfo.CurrentCulture));
+                 Append(value.ToString(CultureInfo.CurrentCulture));
             }
 
             _isStringGenerated = false;
@@ -370,7 +375,7 @@ namespace StringHelper
             if (value == 0)
             {
                 _buffer[_bufferPos++] = '0';
-                return this;
+                return;
             }
 
             // Handle the negative case
@@ -383,7 +388,7 @@ namespace StringHelper
             // Get the meaningful digits as a long
             int nbDecimals = 0;
             //while (value < 1000000)
-           while (value < 10000000000000)//14
+            while (value < 10000000000000)//14
             {
                 value *= 10;
                 nbDecimals++;
@@ -427,10 +432,7 @@ namespace StringHelper
                 _buffer[_bufferPos - i - 1] = _buffer[_bufferPos - nbChars + i];
                 _buffer[_bufferPos - nbChars + i] = c;
             }
-
-            return this;
         }
-
 
         ///<summary>Replace all occurences of a string by another one</summary>
         public LiteStringBuilder Replace(string oldStr, string newStr)

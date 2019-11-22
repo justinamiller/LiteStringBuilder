@@ -182,11 +182,11 @@ namespace LiteStringBuilder.Tests
 
             sb.Clear();
             sb.Append((decimal)100000.123456789);
-            Assert.AreEqual(sb.ToString(), "100000.12345679");
+            Assert.AreEqual(sb.ToString(), "100000.123456789");
 
             sb.Clear();
             sb.Append((double)100000.123456789);
-            Assert.AreEqual(sb.ToString(), "100000.12345679");
+            Assert.AreEqual(sb.ToString(), "100000.123456789");
 
             sb.Clear();
             sb.Append((double)-123412342.123);
