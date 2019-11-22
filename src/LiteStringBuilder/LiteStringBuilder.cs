@@ -466,6 +466,8 @@ namespace StringHelper
         {
             if (_bufferPos + appendLength > _charsCapacity)
             {
+                //fix allocation
+                //_charsCapacity= _bufferPos + appendLength;
                 if (appendLength > _charsCapacity)
                 {
                     //more than double size
