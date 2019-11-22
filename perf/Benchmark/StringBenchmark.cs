@@ -36,19 +36,21 @@ namespace Benchmark
             return string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue).Replace("373", "5428");
         }
 
+        System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
         [Benchmark]
         public  string StringBuilder()
         {
-            System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
+
             m_strBuilder.Length = 0;
             m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
             return m_strBuilder.ToString();
         }
 
+        LiteStringBuilder m_strCustom = new LiteStringBuilder(64);
         [Benchmark]
         public  string LiteStringBuilder()
         {
-            LiteStringBuilder m_strCustom = new LiteStringBuilder(64);
+           
             m_strCustom.Clear();
             m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
             return m_strCustom.ToString();

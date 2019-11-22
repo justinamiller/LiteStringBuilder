@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
+using StringHelper;
 
 namespace LiteStringBuilder.Tests
 {
