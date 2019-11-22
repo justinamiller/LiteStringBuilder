@@ -519,13 +519,15 @@ namespace System.Text
 
         public override int GetHashCode()
         {
-            int hash =  _bufferPos;
-            for (var i = 0; i < _bufferPos; i++)
+            unchecked
             {
-                hash *= 17;
-                hash += _buffer[i].GetHashCode();
+                int hash = 0;
+                for (var i = 0; i < _bufferPos; i++)
+                {
+                    hash += _buffer[i].GetHashCode();
+                }
+                return 31 * hash + _bufferPos;
             }
-            return hash;
         }
     }
 }
