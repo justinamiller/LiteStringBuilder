@@ -103,9 +103,7 @@ namespace StringHelper
             {
                 return string.Empty;
             }
-            //if (!_isStringGenerated) // Regenerate the immutable string if needed
-            //{
-                var allocString = FastAllocateString(_bufferPos);
+            string allocString = FastAllocateString(_bufferPos);
             unsafe
             {
                 fixed (char* sourcePtr = &_buffer[0])
@@ -117,10 +115,6 @@ namespace StringHelper
                 }
             }
             return allocString;
-        //    _stringGenerated = allocString;
-        //    _isStringGenerated = true;
-        //}
-        //    return _stringGenerated;
         }
 #endif
 
