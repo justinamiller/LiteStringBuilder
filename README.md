@@ -38,7 +38,7 @@ Or reference the LiteStringBuilder.dll assembly that matches your app's platform
 ### Creating LiteStringBuilder
 ```C#
 
-    using System.Text;
+    using StringHelper;
     //create through instance
     var sb = new LiteStringBuilder();
     
