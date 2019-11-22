@@ -6,16 +6,29 @@ An alternative to the System.Text.StringBuilder C# class.
 Because System.Text.StringBuilder does actually a lot of memory allocation when appending string, very often it's just not better than a direct string concat.
 
 ### Performance
-Here are the four tests profiled: see [PerfTest.cs](https://github.com/justinamiller/LiteStringBuilder/blob/master/samples/FrameworkConsole/PerfTest.cs)
+[Benchmark Test](https://github.com/justinamiller/LiteStringBuilder/blob/master/perf/Benchmark/StringBenchmark.cs)
 
-The test consists of creating 1000 string by concatenation of a string, a float, a string, an int, an boolean, a short, and finally doing a replacement of 2 string occurrences.
+``` ini
 
-Method | Allocation | Time
------------- | ------------- | ------------- 
-string "+" | 347kb | 6.63ms
-string.concat() | 416kb | 6.24ms
-StringBuilder | 2,439kb | 5.76ms
-LiteStringBuilder | 90kb | 3.85ms
+BenchmarkDotNet=v0.12.0, OS=Windows 10.0.17763.775 (1809/October2018Update/Redstone5)
+Intel Core i9-9880H CPU 2.30GHz, 1 CPU, 8 logical and 8 physical cores
+  [Host]     : .NET Framework 4.8 (4.8.3928.0), X86 LegacyJIT
+  Job-GLVCMQ : .NET Framework 4.8 (4.8.3928.0), X86 LegacyJIT
+
+Runtime=.NET 4.8  
+
+```
+|                  Method |        Mean |       Error |    StdDev | 
+|------------------------ |------------:|------------:|----------:|
+|       LiteStringBuilder |    536.0 ns |    12.75 ns |  13.09 ns |  
+|            String_Added |    665.5 ns |    12.85 ns |  13.75 ns |  
+|           String_Concat |    667.8 ns |    12.98 ns |  16.87 ns |
+|           StringBuilder |    771.3 ns |    11.81 ns |  11.05 ns |
+| Large_LiteStringBuilder | 16,045.8 ns |   313.23 ns | 307.63 ns | 
+|     Large_String_Concat | 16,645.9 ns |   269.73 ns | 239.11 ns | 
+|      Large_String_Added | 17,111.7 ns |   341.10 ns | 478.18 ns | 
+|     Large_StringBuilder | 35,434.8 ns | 1,014.10 ns | 948.59 ns | 
+
 
 ## Supported Platforms
 Currently;
