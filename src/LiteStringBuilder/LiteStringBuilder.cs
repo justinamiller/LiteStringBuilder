@@ -14,11 +14,6 @@ namespace StringHelper
     ///</summary>
     public class LiteStringBuilder
     {
-        ///<summary>Immutable string. Generated at last moment, only if needed</summary>
-        private string _stringGenerated = string.Empty;
-        ///<summary>Is _stringGenerated is up to date ?</summary>
-        private bool _isStringGenerated = false;
-
         ///<summary>Working mutable string</summary>
         private char[] _buffer = null;
         private int _bufferPos = 0;
@@ -71,46 +66,6 @@ namespace StringHelper
             return _bufferPos == 0;
         }
 
-        //private readonly static Func<int, string> FastAllocateString;
-        //static FastString()
-        //{
-        //    var fasMethod = typeof(string).GetMethod("FastAllocateString", BindingFlags.NonPublic | BindingFlags.Static);
-        //    if(fasMethod is null)
-        //    {
-        //        throw new MissingMethodException("string", "FastAllocateString");
-        //    }
-
-        //     FastAllocateString = (Func<int, string>)fasMethod.CreateDelegate(typeof(Func<int, string>));
-        //}
-
-
-        /////<summary>Return the string</summary>
-        //public override string ToString()
-        //{
-        //    if (_bufferPos == 0)
-        //    {
-        //        return string.Empty;
-        //    }
-        //    //  if (!_isStringGenerated) // Regenerate the immutable string if needed
-        //    //  {
-        //    var allocString = FastAllocateString(_bufferPos);
-        //    unsafe
-        //    {
-        //        fixed (char* sourcePtr = &_buffer[0])
-        //        {
-        //            fixed (char* destPtr = allocString)
-        //            {
-        //                Buffer.MemoryCopy(sourcePtr, destPtr, _bufferPos * 2, _bufferPos * 2);
-        //            }
-        //        }
-        //    }
-
-        //    _stringGenerated = allocString;
-        //    //       _isStringGenerated = true;
-        //    //  }
-        //    return _stringGenerated;
-        //}
-
 #if NETSTANDARD1_3
         ///<summary>Return the string</summary>
         public override string ToString()
@@ -119,22 +74,16 @@ namespace StringHelper
             {
                 return string.Empty;
             }
-
-            if (!_isStringGenerated) // Regenerate the immutable string if needed
-            {
                 unsafe
                 {
                     fixed (char* destPtr = &_buffer[0])
                     {
-                        _stringGenerated = new string(destPtr, 0, _bufferPos);
+                        return new string(destPtr, 0, _bufferPos);
                     }
                 }
-                _isStringGenerated = true;
-            }
-            return _stringGenerated;
         }
 #else
-                private readonly static Func<int, string> FastAllocateString;
+        private readonly static Func<int, string> FastAllocateString;
         static LiteStringBuilder()
         {
             var fasMethod = typeof(string).GetMethod("FastAllocateString", BindingFlags.NonPublic | BindingFlags.Static);
@@ -217,8 +166,6 @@ namespace StringHelper
             // We fill the _chars list to manage future appends, but we also directly set the final stringGenerated
             Clear();
             Append(str);
-            _stringGenerated = str;
-            _isStringGenerated = true;
         }
 
         ///<summary>Will allocate a little memory due to boxing</summary>
@@ -237,7 +184,6 @@ namespace StringHelper
         public LiteStringBuilder Clear()
         {
             _bufferPos = 0;
-            _isStringGenerated = false;
             return this;
         }
 
@@ -259,7 +205,6 @@ namespace StringHelper
                 }
 
                 _bufferPos += n;
-                _isStringGenerated = false;
             }
 
             return this;
@@ -283,7 +228,6 @@ namespace StringHelper
         {
             EnsureCapacity(1);
             _buffer[_bufferPos++] = value;
-            _isStringGenerated = false;
             return this;
         }
 
@@ -308,7 +252,6 @@ namespace StringHelper
             EnsureCapacity(n);
             System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
             _bufferPos += n;
-            _isStringGenerated = false;
             return this;
         }
 
@@ -391,7 +334,6 @@ namespace StringHelper
                 }
             }
 
-            _isStringGenerated = false;
             return this;
         }
 
@@ -409,7 +351,6 @@ namespace StringHelper
                 Append(value.ToString(CultureInfo.CurrentCulture));
             }
 
-            _isStringGenerated = false;
             EnsureCapacity(45); // Check we have enough buffer allocated to handle most double number
             // Handle the 0 case
             if (value == 0)
@@ -522,7 +463,6 @@ namespace StringHelper
 
             System.Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
             _bufferPos = index;
-            _isStringGenerated = false;
             return this;
         }
 
