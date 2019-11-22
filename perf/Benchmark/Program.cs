@@ -27,7 +27,8 @@ namespace Benchmark
                  //      .With(new BenchmarkDotNet.Diagnosers.CompositeDiagnoser())
                  // .With(new BenchmarkDotNet.Diagnosers.CompositeDiagnoser())
                  .With(ExecutionValidator.FailOnError)
-                 .With(Job.Default.With(ClrRuntime.Net472))
+                 .With(Job.Default.With(ClrRuntime.Net48))
+
              );
             Console.WriteLine("DONE!!!!");
             Console.ReadLine();

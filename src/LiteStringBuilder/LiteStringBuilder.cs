@@ -24,9 +24,6 @@ namespace StringHelper
         private int _bufferPos = 0;
         private int _charsCapacity = 0;
 
-        ///<summary>Temporary string used for the Replace method</summary>
-        private char[] _replacement = null;
-
         /// <summary>
         /// gets the size of data in the buffer pool
         /// </summary>
@@ -50,7 +47,7 @@ namespace StringHelper
 
         public LiteStringBuilder(int initialCapacity = 32)
         {
-            _charsCapacity = initialCapacity>0 ? initialCapacity: 32;
+            _charsCapacity = initialCapacity > 0 ? initialCapacity : 32;
             _buffer = new char[_charsCapacity];
         }
 
@@ -114,6 +111,7 @@ namespace StringHelper
         //    return _stringGenerated;
         //}
 
+#if NETSTANDARD1_3
         ///<summary>Return the string</summary>
         public override string ToString()
         {
@@ -125,21 +123,63 @@ namespace StringHelper
             if (!_isStringGenerated) // Regenerate the immutable string if needed
             {
                 unsafe
-            {
-                fixed (char* destPtr = &_buffer[0])
                 {
-                    _stringGenerated = new string(destPtr, 0, _bufferPos);
+                    fixed (char* destPtr = &_buffer[0])
+                    {
+                        _stringGenerated = new string(destPtr, 0, _bufferPos);
+                    }
                 }
+                _isStringGenerated = true;
             }
-            _isStringGenerated = true;
-        }
             return _stringGenerated;
         }
+#else
+                private readonly static Func<int, string> FastAllocateString;
+        static LiteStringBuilder()
+        {
+            var fasMethod = typeof(string).GetMethod("FastAllocateString", BindingFlags.NonPublic | BindingFlags.Static);
+            if (fasMethod is null)
+            {
+                throw new MissingMethodException("string", "FastAllocateString");
+            }
+
+            FastAllocateString = (Func<int, string>)fasMethod.CreateDelegate(typeof(Func<int, string>));
+        }
+
+
+        ///<summary>Return the string</summary>
+        public override string ToString()
+        {
+            if (_bufferPos == 0)
+            {
+                return string.Empty;
+            }
+            //if (!_isStringGenerated) // Regenerate the immutable string if needed
+            //{
+                var allocString = FastAllocateString(_bufferPos);
+            unsafe
+            {
+                fixed (char* sourcePtr = &_buffer[0])
+                {
+                    fixed (char* destPtr = allocString)
+                    {
+                        Buffer.MemoryCopy(sourcePtr, destPtr, _bufferPos * 2, _bufferPos * 2);
+                    }
+                }
+            }
+            return allocString;
+        //    _stringGenerated = allocString;
+        //    _isStringGenerated = true;
+        //}
+        //    return _stringGenerated;
+        }
+#endif
+
 
 
         public override bool Equals(object obj)
         {
-            return Equals(obj as  LiteStringBuilder);
+            return Equals(obj as LiteStringBuilder);
         }
         public bool Equals(LiteStringBuilder other)
         {
@@ -152,12 +192,12 @@ namespace StringHelper
                 return true;
 
             // Check for same Id and same Values
-            if( other.Length != this.Length)
+            if (other.Length != this.Length)
             {
                 return false;
             }
 
-            for(var i = 0; i < _bufferPos; i++)
+            for (var i = 0; i < _bufferPos; i++)
             {
                 if (!this._buffer[i].Equals(other._buffer[i]))
                 {
@@ -185,7 +225,7 @@ namespace StringHelper
         public void Set(params object[] str)
         {
             Clear();
-         
+
             for (int i = 0; i < str.Length; i++)
             {
                 Append(str[i]);
@@ -216,12 +256,12 @@ namespace StringHelper
                     {
                         System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
                     }
-                }  
+                }
 
                 _bufferPos += n;
                 _isStringGenerated = false;
             }
-            
+
             return this;
         }
 
@@ -311,7 +351,7 @@ namespace StringHelper
 
         public LiteStringBuilder Append(short value)
         {
-           return  Append((long)value);
+            return Append((long)value);
         }
 
         public LiteStringBuilder Append(long value)
@@ -366,7 +406,7 @@ namespace StringHelper
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
-                 Append(value.ToString(CultureInfo.CurrentCulture));
+                Append(value.ToString(CultureInfo.CurrentCulture));
             }
 
             _isStringGenerated = false;
@@ -452,16 +492,8 @@ namespace StringHelper
             // var replacement = new char[((_bufferPos / oldstrLength) * (oldstrLength + Math.Abs(oldstrLength - newStrLength)))+1];
             int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
             int size = ((_bufferPos / oldstrLength) * (oldstrLength + deltaLength)) + 1;
-            if (_replacement == null)
-            {
-                _replacement = new char[size];
-            }
-            else if(size>_replacement.Length)
-            {
-                Array.Resize(ref _replacement, size);
-            }
-            //var replacement = new char[_bufferPos * 2];
             int index = 0;
+            var replacementChars = new char[size];
 
             // Create the new string into _replacement
             for (int i = 0; i < _bufferPos; i++)
@@ -479,23 +511,23 @@ namespace StringHelper
                     i += oldstrLength - 1;
                     if (newStr != null)
                         for (int k = 0; k < newStrLength; k++)
-                            _replacement[index++] = newStr[k];
+                            replacementChars[index++] = newStr[k];
                 }
                 else // No replacement, copy the old character
-                    _replacement[index++] = _buffer[i];
+                    replacementChars[index++] = _buffer[i];
             }
 
             // Copy back the new string into _chars
-            EnsureCapacity(index- _bufferPos);
-            System.Buffer.BlockCopy(_replacement, 0, _buffer, 0,  index* 2);
+            EnsureCapacity(index - _bufferPos);
 
+            System.Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
             _bufferPos = index;
             _isStringGenerated = false;
             return this;
         }
 
 
-         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
         {
             if (_bufferPos + appendLength > _charsCapacity)
@@ -511,9 +543,9 @@ namespace StringHelper
                     _charsCapacity *= 2;
                 }
 
- 
+
                 char[] newChars = new char[_charsCapacity];
-                Buffer.BlockCopy(_buffer, 0, newChars, 0, _bufferPos*2);
+                Buffer.BlockCopy(_buffer, 0, newChars, 0, _bufferPos * 2);
                 _buffer = newChars;
             }
         }
