@@ -4,6 +4,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Mathematics;
 using BenchmarkDotNet.Order;
+using StringHelper;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StringHelper;
+using System;
 using System.Diagnostics;
 using System.Text;
 

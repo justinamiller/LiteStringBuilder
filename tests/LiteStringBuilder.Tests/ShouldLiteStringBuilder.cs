@@ -12,21 +12,21 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestLiteStringBuilder()
         {
-            var sb = new System.Text.LiteStringBuilder();
-            sb = new System.Text.LiteStringBuilder(0);
-            sb = new System.Text.LiteStringBuilder(-32);
-            sb = new System.Text.LiteStringBuilder(null);
+            var sb = new StringHelper.LiteStringBuilder();
+            sb = new StringHelper.LiteStringBuilder(0);
+            sb = new StringHelper.LiteStringBuilder(-32);
+            sb = new StringHelper.LiteStringBuilder(null);
             Assert.AreEqual(sb.ToString(), "");
-            sb = new System.Text.LiteStringBuilder("");
+            sb = new StringHelper.LiteStringBuilder("");
             Assert.AreEqual(sb.ToString(), "");
-            sb = new System.Text.LiteStringBuilder("Hello");
+            sb = new StringHelper.LiteStringBuilder("Hello");
             Assert.AreEqual(sb.ToString(), "Hello");
         }
 
         [TestMethod]
         public void TestLength()
         {
-            var sb = new System.Text.LiteStringBuilder();
+            var sb = new StringHelper.LiteStringBuilder();
             Assert.IsTrue(sb.Length == 0);
             sb.Append("Hello");
             Assert.IsTrue(sb.Length == 5);
@@ -35,7 +35,7 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestIsEmpty()
         {
-            var sb = new System.Text.LiteStringBuilder();
+            var sb = new StringHelper.LiteStringBuilder();
             Assert.IsTrue(sb.IsEmpty());
             sb.Append("Hello");
             Assert.IsFalse(sb.IsEmpty());
@@ -44,7 +44,7 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestClear()
         {
-            var sb = new System.Text.LiteStringBuilder();
+            var sb = new StringHelper.LiteStringBuilder();
             Assert.IsTrue(sb.IsEmpty());
             sb.Append("Hello");
             Assert.IsFalse(sb.IsEmpty());
@@ -57,11 +57,11 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestCreate()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             sb.Append("Hello");
             Assert.IsFalse(sb.IsEmpty());
             Assert.AreEqual(sb.ToString(), "Hello");
-            sb = System.Text.LiteStringBuilder.Create(32);
+            sb = StringHelper.LiteStringBuilder.Create(32);
             sb.Append("Hello");
             Assert.IsFalse(sb.IsEmpty());
             Assert.AreEqual(sb.ToString(), "Hello");
@@ -70,15 +70,15 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestEquals()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             sb.Append("Hello");
 
-            var sb1 = System.Text.LiteStringBuilder.Create();
+            var sb1 = StringHelper.LiteStringBuilder.Create();
             sb1.Append("Hello");
 
             Assert.IsTrue(sb1.Equals(sb));
 
-            sb1 = System.Text.LiteStringBuilder.Create();
+            sb1 = StringHelper.LiteStringBuilder.Create();
             sb1.Append("hello");
             Assert.IsFalse(sb1.Equals(sb));
 
@@ -102,15 +102,15 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestGetHashCode()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             sb.Append("Hello");
 
-            var sb1 = System.Text.LiteStringBuilder.Create();
+            var sb1 = StringHelper.LiteStringBuilder.Create();
             sb1.Append("Hello");
 
             Assert.IsTrue(sb1.GetHashCode() == sb.GetHashCode());
 
-            sb1 = System.Text.LiteStringBuilder.Create();
+            sb1 = StringHelper.LiteStringBuilder.Create();
             sb1.Append("hello");
             Assert.IsFalse(sb1.GetHashCode() == sb.GetHashCode());
 
@@ -132,7 +132,7 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestAppend()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             Assert.IsTrue(sb.Length == 0);
             sb.Append((string)null);
             Assert.IsTrue(sb.Length == 0);
@@ -220,7 +220,7 @@ namespace LiteStringBuilder.Tests
             sb.Append(new char[] { 'h', 'i' });
             Assert.AreEqual(sb.ToString(), "hi");
 
-            sb = System.Text.LiteStringBuilder.Create();
+            sb = StringHelper.LiteStringBuilder.Create();
             for(var i = 0; i < 1000; i++)
             {
                 sb.Append('a');
@@ -231,7 +231,7 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestAppendline()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             Assert.IsTrue(sb.Length == 0);
             sb.AppendLine();
             Assert.IsTrue(sb.Length == Environment.NewLine.Length);
@@ -252,7 +252,7 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestReplace()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             sb.Append("ABCabcABCdefgABC");
             sb.Replace("ABC", "123");
             Assert.AreEqual(sb.ToString(), "123abc123defg123");
@@ -295,7 +295,7 @@ namespace LiteStringBuilder.Tests
         [TestMethod]
         public void TestSet()
         {
-            var sb = System.Text.LiteStringBuilder.Create();
+            var sb = StringHelper.LiteStringBuilder.Create();
             sb.Append("Hello World");
             sb.Set("Hi");
             Assert.IsFalse(sb.IsEmpty());

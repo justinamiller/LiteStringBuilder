@@ -4,8 +4,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Text;
+using System;
 
-namespace System.Text
+namespace StringHelper
 {
     ///<summary>
     /// Mutable String class, optimized for speed and memory allocations while retrieving the final result as a string.
@@ -121,17 +122,17 @@ namespace System.Text
                 return string.Empty;
             }
 
-            //  if (!_isStringGenerated) // Regenerate the immutable string if needed
-            //  {
-            unsafe
+            if (!_isStringGenerated) // Regenerate the immutable string if needed
+            {
+                unsafe
             {
                 fixed (char* destPtr = &_buffer[0])
                 {
                     _stringGenerated = new string(destPtr, 0, _bufferPos);
                 }
             }
-            //       _isStringGenerated = true;
-            //  }
+            _isStringGenerated = true;
+        }
             return _stringGenerated;
         }
 
@@ -206,23 +207,15 @@ namespace System.Text
             if (n > 0)
             {
                 EnsureCapacity(n);
-#if NET40 || NET46 || NET45
-        for( int i=0; i<n; i++)
-                {
-                    _buffer[_bufferPos + i] = value[i];
-                }
-#else
                 int bytesSize = n * 2;
                 unsafe
                 {
                     fixed (char* valuePtr = value)
                     fixed (char* destPtr = &_buffer[_bufferPos])
                     {
-                        Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
                     }
                 }  
-#endif
-
 
                 _bufferPos += n;
                 _isStringGenerated = false;
@@ -272,7 +265,7 @@ namespace System.Text
         {
             int n = value.Length;
             EnsureCapacity(n);
-            Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
+            System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
             _bufferPos += n;
             _isStringGenerated = false;
             return this;
@@ -486,7 +479,7 @@ namespace System.Text
 
             // Copy back the new string into _chars
             EnsureCapacity(index- _bufferPos);
-            Buffer.BlockCopy(_replacement, 0, _buffer, 0,  index* 2);
+            System.Buffer.BlockCopy(_replacement, 0, _buffer, 0,  index* 2);
 
             _bufferPos = index;
             _isStringGenerated = false;
@@ -502,7 +495,7 @@ namespace System.Text
                 if (appendLength > _charsCapacity)
                 {
                     //more than double size
-                    _charsCapacity = _charsCapacity + appendLength;
+                    _charsCapacity += appendLength;
                 }
                 else
                 {
