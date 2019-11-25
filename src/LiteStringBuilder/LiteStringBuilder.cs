@@ -278,9 +278,12 @@ namespace StringHelper
             // Reverse the result
             for (int i = nbChars / 2 - 1; i >= 0; i--)
             {
-                char c = _buffer[_bufferPos - i - 1];
-                _buffer[_bufferPos - i - 1] = _buffer[_bufferPos - nbChars + i];
-                _buffer[_bufferPos - nbChars + i] = c;
+                int aPtr = _bufferPos - i - 1;
+                int bPtr = _bufferPos - nbChars + i;
+
+                char c = _buffer[aPtr];
+                _buffer[aPtr] = _buffer[bPtr];
+                _buffer[bPtr] = c;
             }
 
 
