@@ -157,7 +157,7 @@ namespace StringHelper
 
                 _bufferPos += n;
             }
-         
+
             return this;
         }
 
@@ -253,37 +253,36 @@ namespace StringHelper
             // Allocate enough memory to handle any long number
             EnsureCapacity(19);
 
-            bool isNegative = value < 0;
-            if (!isNegative && value >= 0 && value <= 9)
+            // Handle the negative case
+            if (value < 0)
+            {
+                value = -value;
+                _buffer[_bufferPos++] = '-';
+            }
+
+            if (value >= 0 && value <= 9)
             {
                 _buffer[_bufferPos++] = _charNumbers[value];
+                return this;
             }
-            else
+
+            // Copy the digits in reverse order
+            int nbChars = 0;
+            do
             {
-                // Handle the negative case
-                if (isNegative)
-                {
-                    value = -value;
-                    _buffer[_bufferPos++] = '-';
-                }
+                _buffer[_bufferPos++] = _charNumbers[value % 10];
+                value /= 10;
+                nbChars++;
+            } while (value != 0);
 
-                // Copy the digits in reverse order
-                int nbChars = 0;
-                do
-                {
-                    _buffer[_bufferPos++] = _charNumbers[value % 10];
-                    value /= 10;
-                    nbChars++;
-                } while (value != 0);
-
-                // Reverse the result
-                for (int i = nbChars / 2 - 1; i >= 0; i--)
-                {
-                    char c = _buffer[_bufferPos - i - 1];
-                    _buffer[_bufferPos - i - 1] = _buffer[_bufferPos - nbChars + i];
-                    _buffer[_bufferPos - nbChars + i] = c;
-                }
+            // Reverse the result
+            for (int i = nbChars / 2 - 1; i >= 0; i--)
+            {
+                char c = _buffer[_bufferPos - i - 1];
+                _buffer[_bufferPos - i - 1] = _buffer[_bufferPos - nbChars + i];
+                _buffer[_bufferPos - nbChars + i] = c;
             }
+
 
             return this;
         }
