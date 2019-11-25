@@ -24,6 +24,14 @@ namespace Benchmark
         //private static System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
 
         [Benchmark]
+        public string String_Interpolated()
+        {
+            string str = $"PI= { Math.PI} _373= { 373 } {true} {short.MaxValue}";
+            return str.Replace("373", "5428");
+        }
+
+
+        [Benchmark]
         public  string String_Added()
         {
             string str = "PI=" + Math.PI + "_373=" + 373 + true + short.MaxValue;
@@ -56,10 +64,19 @@ namespace Benchmark
             return m_strCustom.ToString();
         }
 
+
         private readonly static string str1 = new string('a',1000);
         private readonly static string str2 = new string('b', 1000);
         private readonly static string str3 = new string('c', 1000);
         private readonly static string str4 = new string('d', 1000);
+
+        [Benchmark]
+        public string Large_String_Interpolated()
+        {
+            string str = $"{str1} {str2}{str3}{str4}";
+            return str.Replace("c", "z");
+        }
+
         [Benchmark]
         public string Large_String_Added()
         {
@@ -92,6 +109,7 @@ namespace Benchmark
             m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4).Replace("c", "z");
             return m_strCustom.ToString();
         }
+
     }
 }
 

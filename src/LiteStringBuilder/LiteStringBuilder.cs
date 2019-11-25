@@ -66,7 +66,6 @@ namespace StringHelper
             return _bufferPos == 0;
         }
 
-#if NETSTANDARD1_3
         ///<summary>Return the string</summary>
         public override string ToString()
         {
@@ -74,51 +73,9 @@ namespace StringHelper
             {
                 return string.Empty;
             }
-                unsafe
-                {
-                    fixed (char* destPtr = &_buffer[0])
-                    {
-                        return new string(destPtr, 0, _bufferPos);
-                    }
-                }
+
+            return new string(_buffer, 0, _bufferPos);
         }
-#else
-        private readonly static Func<int, string> FastAllocateString;
-        static LiteStringBuilder()
-        {
-            var fasMethod = typeof(string).GetMethod("FastAllocateString", BindingFlags.NonPublic | BindingFlags.Static);
-            if (fasMethod is null)
-            {
-                throw new MissingMethodException("string", "FastAllocateString");
-            }
-
-            FastAllocateString = (Func<int, string>)fasMethod.CreateDelegate(typeof(Func<int, string>));
-        }
-
-
-        ///<summary>Return the string</summary>
-        public override string ToString()
-        {
-            if (_bufferPos == 0)
-            {
-                return string.Empty;
-            }
-            string allocString = FastAllocateString(_bufferPos);
-            unsafe
-            {
-                fixed (char* sourcePtr = &_buffer[0])
-                {
-                    fixed (char* destPtr = allocString)
-                    {
-                        Buffer.MemoryCopy(sourcePtr, destPtr, _bufferPos * 2, _bufferPos * 2);
-                    }
-                }
-            }
-            return allocString;
-        }
-#endif
-
-
 
         public override bool Equals(object obj)
         {
@@ -200,7 +157,7 @@ namespace StringHelper
 
                 _bufferPos += n;
             }
-
+         
             return this;
         }
 
