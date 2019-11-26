@@ -46,18 +46,18 @@ Intel Core i9-9880H CPU 2.30GHz, 1 CPU, 8 logical and 8 physical cores
 Runtime=.NET Core 3.0  
 
 ```
-|                    Method |        Mean |     Error |    StdDev |      Median |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|-------------------------- |------------:|----------:|----------:|------------:|-------:|-------:|------:|----------:|
-|              String_Added |    458.7 ns |   3.58 ns |   3.35 ns |    457.7 ns | 0.0467 |      - |     - |     392 B |
-|         LiteStringBuilder |    505.3 ns |  10.04 ns |   9.86 ns |    501.2 ns | 0.0410 |      - |     - |     344 B |
-|             String_Concat |    538.9 ns |  13.65 ns |  38.29 ns |    527.1 ns | 0.0668 |      - |     - |     560 B |
-|       String_Interpolated |    609.5 ns |  12.06 ns |  12.39 ns |    603.9 ns |0.0448 |      - |     - |     376 B |
-|             StringBuilder |    682.1 ns |  15.40 ns |  23.51 ns |    677.2 ns | 0.0544 |      - |     - |     456 B |
-|   Large_LiteStringBuilder |  8,930.6 ns | 175.61 ns | 180.34 ns |  8,869.1 ns | 0.9766 | 0.0153 |     - |    8208 B |
-|       Large_String_Concat | 12,359.0 ns | 214.07 ns | 200.24 ns | 12,350.1 ns |1.9073 | 0.0763 |     - |   16048 B |
-| Large_String_Interpolated | 12,612.2 ns | 189.40 ns | 177.17 ns | 12,607.5 ns |  1.9226 | 0.0610 |     - |   16112 B |
-|        Large_String_Added | 12,776.4 ns | 296.47 ns | 549.52 ns | 12,611.3 ns | 1.9073 | 0.0763 |     - |   16048 B |
-|       Large_StringBuilder | 30,215.0 ns | 569.50 ns | 504.85 ns | 30,011.7 ns | 3.4485 | 0.1831 |     - |   28952 B |
+|                    Method |        Mean |     Error |    StdDev |      Median |  Gen 0 |  Gen 1 | Allocated |
+|-------------------------- |------------:|----------:|----------:|------------:|-------:|-------:|----------:|
+|              String_Added |    458.7 ns |   3.58 ns |   3.35 ns |    457.7 ns | 0.0467 |      - |     392 B |
+|         LiteStringBuilder |    505.3 ns |  10.04 ns |   9.86 ns |    501.2 ns | 0.0410 |      - |     344 B |
+|             String_Concat |    538.9 ns |  13.65 ns |  38.29 ns |    527.1 ns | 0.0668 |      - |     560 B |
+|       String_Interpolated |    609.5 ns |  12.06 ns |  12.39 ns |    603.9 ns |0.0448 |      - |     376 B |
+|             StringBuilder |    682.1 ns |  15.40 ns |  23.51 ns |    677.2 ns | 0.0544 |      - |     456 B |
+|   Large_LiteStringBuilder |  8,930.6 ns | 175.61 ns | 180.34 ns |  8,869.1 ns | 0.9766 | 0.0153 |    8208 B |
+|       Large_String_Concat | 12,359.0 ns | 214.07 ns | 200.24 ns | 12,350.1 ns |1.9073 | 0.0763 |   16048 B |
+| Large_String_Interpolated | 12,612.2 ns | 189.40 ns | 177.17 ns | 12,607.5 ns |  1.9226 | 0.0610 |   16112 B |
+|        Large_String_Added | 12,776.4 ns | 296.47 ns | 549.52 ns | 12,611.3 ns | 1.9073 | 0.0763 |   16048 B |
+|       Large_StringBuilder | 30,215.0 ns | 569.50 ns | 504.85 ns | 30,011.7 ns | 3.4485 | 0.1831 |   28952 B |
 
 ## Supported Platforms
 Currently;
