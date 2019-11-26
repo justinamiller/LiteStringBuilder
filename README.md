@@ -41,23 +41,23 @@ BenchmarkDotNet=v0.12.0, OS=Windows 10.0.17763.775 (1809/October2018Update/Redst
 Intel Core i9-9880H CPU 2.30GHz, 1 CPU, 8 logical and 8 physical cores
 .NET Core SDK=3.0.100
   [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
-  Job-PNLSCM : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  Job-OQEAOY : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 
 Runtime=.NET Core 3.0  
 
 ```
-|                    Method |        Mean |     Error |    StdDev |
-|-------------------------- |------------:|----------:|----------:|
-|         LiteStringBuilder |    445.8 ns |   1.29 ns |   1.21 ns |
-|              String_Added |    447.9 ns |   4.29 ns |   4.01 ns | 
-|             String_Concat |    491.6 ns |  12.36 ns |  14.71 ns | 
-|             StringBuilder |    584.9 ns |   5.99 ns |   5.31 ns |
-|       String_Interpolated |    634.8 ns |  12.46 ns |  13.85 ns |
-|   Large_LiteStringBuilder |  9,402.2 ns | 104.21 ns |  97.48 ns | 
-|       Large_String_Concat | 11,581.3 ns | 145.70 ns | 129.16 ns |
-|        Large_String_Added | 11,709.0 ns | 252.74 ns | 280.92 ns |
-| Large_String_Interpolated | 11,992.4 ns | 171.29 ns | 143.03 ns |
-|       Large_StringBuilder | 28,484.4 ns | 175.88 ns | 146.86 ns |
+|                    Method |        Mean |     Error |    StdDev |      Median | Rank |      Rank |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|-------------------------- |------------:|----------:|----------:|------------:|-----:|----------:|-------:|-------:|------:|----------:|
+|              String_Added |    458.7 ns |   3.58 ns |   3.35 ns |    457.7 ns |    1 |         * | 0.0467 |      - |     - |     392 B |
+|         LiteStringBuilder |    505.3 ns |  10.04 ns |   9.86 ns |    501.2 ns |    2 |        ** | 0.0410 |      - |     - |     344 B |
+|             String_Concat |    538.9 ns |  13.65 ns |  38.29 ns |    527.1 ns |    3 |       *** | 0.0668 |      - |     - |     560 B |
+|       String_Interpolated |    609.5 ns |  12.06 ns |  12.39 ns |    603.9 ns |    4 |      **** | 0.0448 |      - |     - |     376 B |
+|             StringBuilder |    682.1 ns |  15.40 ns |  23.51 ns |    677.2 ns |    5 |     ***** | 0.0544 |      - |     - |     456 B |
+|   Large_LiteStringBuilder |  8,930.6 ns | 175.61 ns | 180.34 ns |  8,869.1 ns |    6 |    ****** | 0.9766 | 0.0153 |     - |    8208 B |
+|       Large_String_Concat | 12,359.0 ns | 214.07 ns | 200.24 ns | 12,350.1 ns |    7 |   ******* | 1.9073 | 0.0763 |     - |   16048 B |
+| Large_String_Interpolated | 12,612.2 ns | 189.40 ns | 177.17 ns | 12,607.5 ns |    8 |  ******** | 1.9226 | 0.0610 |     - |   16112 B |
+|        Large_String_Added | 12,776.4 ns | 296.47 ns | 549.52 ns | 12,611.3 ns |    8 |  ******** | 1.9073 | 0.0763 |     - |   16048 B |
+|       Large_StringBuilder | 30,215.0 ns | 569.50 ns | 504.85 ns | 30,011.7 ns |    9 | ********* | 3.4485 | 0.1831 |     - |   28952 B |
 
 ## Supported Platforms
 Currently;
