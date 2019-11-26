@@ -6,7 +6,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System;
 using System.Buffers;
-
+using System.Runtime.InteropServices;
 namespace StringHelper
 {
     ///<summary>
@@ -365,8 +365,67 @@ public int Length
         {
             return Append(value.ToString(CultureInfo.CurrentCulture));
         }
+        private LiteStringBuilder InternalAppend(float valueF)
+        {
+            double value = valueF;
 
-        private void InternalAppend(double value)
+            EnsureCapacity(32); // Check we have enough buffer allocated to handle any float number
+
+            // Handle the 0 case
+            if (value == 0)
+            {
+                _buffer[_bufferPos++] = '0';
+                return this;
+            }
+
+            // Handle the negative case
+            if (value < 0)
+            {
+                value = -value;
+                _buffer[_bufferPos++] = '-';
+            }
+
+            // Get the 7 meaningful digits as a long
+            int nbDecimals = 0;
+            while (value < 1000000)
+            {
+                value *= 10;
+                nbDecimals++;
+            }
+            long valueLong = (long)System.Math.Round(value);
+
+            // Parse the number in reverse order
+            int nbChars = 0;
+            bool isLeadingZero = true;
+            while (valueLong != 0 || nbDecimals >= 0)
+            {
+                // We stop removing leading 0 when non-0 or decimal digit
+                if (valueLong % 10 != 0 || nbDecimals <= 0)
+                    isLeadingZero = false;
+
+                // Write the last digit (unless a leading zero)
+                if (!isLeadingZero)
+                    _buffer[_bufferPos + (nbChars++)] = (char)('0' + valueLong % 10);
+
+                // Add the decimal point
+                if (--nbDecimals == 0 && !isLeadingZero)
+                    _buffer[_bufferPos + (nbChars++)] = '.';
+
+                valueLong /= 10;
+            }
+            _bufferPos += nbChars;
+
+            // Reverse the result
+            for (int i = nbChars / 2 - 1; i >= 0; i--)
+            {
+                char c = _buffer[_bufferPos - i - 1];
+                _buffer[_bufferPos - i - 1] = _buffer[_bufferPos - nbChars + i];
+                _buffer[_bufferPos - nbChars + i] = c;
+            }
+
+            return this;
+        }
+        private LiteStringBuilder InternalAppend(double value)
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
@@ -378,7 +437,7 @@ public int Length
             if (value == 0)
             {
                 _buffer[_bufferPos++] = '0';
-                return;
+                return this;
             }
 
             // Handle the negative case
@@ -435,6 +494,8 @@ public int Length
                 _buffer[_bufferPos - i - 1] = _buffer[_bufferPos - nbChars + i];
                 _buffer[_bufferPos - nbChars + i] = c;
             }
+
+            return this;
         }
 
         ///<summary>Replace all occurences of a string by another one</summary>
@@ -516,7 +577,6 @@ public int Length
                 pool.Return(newChars);
             }
         }
-
         public override int GetHashCode()
         {
             unchecked
