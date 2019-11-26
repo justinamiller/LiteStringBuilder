@@ -512,8 +512,6 @@ public int Length
                 newStr = "";
 
             int newStrLength = newStr.Length;
-
-            // var replacement = new char[((_bufferPos / oldstrLength) * (oldstrLength + Math.Abs(oldstrLength - newStrLength)))+1];
             int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
             int size = ((_bufferPos / oldstrLength) * (oldstrLength + deltaLength)) + 1;
             int index = 0;
