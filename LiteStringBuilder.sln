@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiteStringBuilder.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark", "perf\Benchmark\Benchmark.csproj", "{5EA04FBA-2C18-4039-9735-67DB57363991}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark.Core", "perf\Benchmark.Core\Benchmark.Core.csproj", "{F4A3ABC8-9C5E-4022-9FBC-BD0F3112F68F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{5EA04FBA-2C18-4039-9735-67DB57363991}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5EA04FBA-2C18-4039-9735-67DB57363991}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5EA04FBA-2C18-4039-9735-67DB57363991}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4A3ABC8-9C5E-4022-9FBC-BD0F3112F68F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4A3ABC8-9C5E-4022-9FBC-BD0F3112F68F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4A3ABC8-9C5E-4022-9FBC-BD0F3112F68F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4A3ABC8-9C5E-4022-9FBC-BD0F3112F68F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

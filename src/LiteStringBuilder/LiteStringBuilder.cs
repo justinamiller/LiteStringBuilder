@@ -151,6 +151,7 @@ namespace StringHelper
                     fixed (char* valuePtr = value)
                     fixed (char* destPtr = &_buffer[_bufferPos])
                     {
+                
                         System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
                     }
                 }
@@ -230,7 +231,12 @@ namespace StringHelper
         ///<summary>Append an int without memory allocation</summary>
         public LiteStringBuilder Append(int value)
         {
-            return Append((long)value);
+            bool isNegative = value < 0;
+            if (isNegative)
+            {
+                value = -value;
+            }
+            return Append((ulong)value, isNegative);
         }
 
         public LiteStringBuilder Append(float value)
@@ -245,18 +251,53 @@ namespace StringHelper
 
         public LiteStringBuilder Append(short value)
         {
-            return Append((long)value);
+            if (value < 0)
+            {
+                int val = (int)value;
+                val = -val;
+                return Append((ulong)val, true);
+            }
+
+            return Append((ulong)value, false);
         }
 
         public LiteStringBuilder Append(long value)
         {
-            // Allocate enough memory to handle any long number
-            EnsureCapacity(19);
-
-            // Handle the negative case
-            if (value < 0)
+            bool isNegative = value < 0;
+            if (isNegative)
             {
                 value = -value;
+            }
+            return Append((ulong)value, isNegative);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetIntLength(ulong n)
+        {
+            int num = 0;
+            do
+            {
+                num++;
+                n /= 10uL;
+            }
+            while (n != 0uL);
+            return num;
+        }
+
+        private LiteStringBuilder Append(ulong value, bool isNegative)
+        {
+            // Allocate enough memory to handle any ulong number
+            int length = GetIntLength(value);
+
+            if (isNegative)
+            {
+                length++;
+            }
+            EnsureCapacity(length);
+
+            // Handle the negative case
+            if (isNegative)
+            {
                 _buffer[_bufferPos++] = '-';
             }
 
@@ -289,7 +330,6 @@ namespace StringHelper
 
             return this;
         }
-
 
         ///<summary>Append a double without memory allocation.</summary>
         public LiteStringBuilder Append(double value)
@@ -426,7 +466,7 @@ namespace StringHelper
             if (_bufferPos + appendLength > _charsCapacity)
             {
                 //fix allocation
-                //_charsCapacity= _bufferPos + appendLength;
+                // _charsCapacity= _bufferPos + appendLength;
                 if (appendLength > _charsCapacity)
                 {
                     //more than double size
