@@ -16,48 +16,49 @@ namespace Benchmark.Core
     [RankColumn(NumeralSystem.Stars)]
     public class StringBenchmark
     {
-        //#region Normal
-        //[Benchmark]
-        //public string String_Interpolated()
-        //{
-        //    string str = $"PI= { Math.PI} _373= { 373 } {true} {short.MaxValue}";
-        //    return str.Replace("373", "5428");
-        //}
+        #region Normal
+        [Benchmark]
+        public string String_Interpolated()
+        {
+            string str = $"PI= { Math.PI} _373= { 373 } {true} {short.MaxValue}";
+            return str.Replace("373", "5428");
+        }
 
 
-        //[Benchmark]
-        //public string String_Added()
-        //{
-        //    string str = "PI=" + Math.PI + "_373=" + 373 + true + short.MaxValue;
-        //    return str.Replace("373", "5428");
-        //}
+        [Benchmark]
+        public string String_Added()
+        {
+            string str = "PI=" + Math.PI + "_373=" + 373 + true + short.MaxValue;
+            return str.Replace("373", "5428");
+        }
 
-        //[Benchmark]
-        //public string String_Concat()
-        //{
-        //    return string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue).Replace("373", "5428");
-        //}
-
-
-        //[Benchmark]
-        //public string StringBuilder()
-        //{
-        //    System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
-        //    //m_strBuilder.Length = 0;
-        //    m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
-        //    return m_strBuilder.ToString();
-        //}
+        [Benchmark]
+        public string String_Concat()
+        {
+            string str = string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue);
+            return str.Replace("373", "5428");
+        }
 
 
-        //[Benchmark]
-        //public string LiteStringBuilder()
-        //{
-        //    LiteStringBuilder m_strCustom = new LiteStringBuilder(64);
-        //    // m_strCustom.Clear();
-        //    m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
-        //    return m_strCustom.ToString();
-        //}
-        //#endregion
+        [Benchmark]
+        public string StringBuilder()
+        {
+            System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
+            //m_strBuilder.Length = 0;
+            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
+            return m_strBuilder.ToString();
+        }
+
+
+        [Benchmark]
+        public string LiteStringBuilder()
+        {
+            LiteStringBuilder m_strCustom = new LiteStringBuilder(64);
+            // m_strCustom.Clear();
+            m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
+            return m_strCustom.ToString();
+        }
+        #endregion
 
         #region BIGString
 
@@ -83,7 +84,8 @@ namespace Benchmark.Core
         [Benchmark]
         public string Large_String_Concat()
         {
-            return string.Concat(str1, str2, str3, str4).Replace("c", "z");
+            string str = string.Concat(str1, str2, str3, str4);
+            return str.Replace("c", "z");
         }
 
 
