@@ -8,6 +8,7 @@ Because System.Text.StringBuilder does actually a lot of memory allocation when 
 ### Performance
 [Benchmark Test](https://github.com/justinamiller/LiteStringBuilder/blob/master/perf/Benchmark/StringBenchmark.cs)
 
+##### Framework 4.8
 ``` ini
 
 BenchmarkDotNet=v0.12.0, OS=Windows 10.0.17763.775 (1809/October2018Update/Redstone5)
@@ -31,6 +32,8 @@ Runtime=.NET 4.8
 |        Large_String_Added | 16,384.8 ns | 286.11 ns | 238.91 ns |
 |       Large_StringBuilder | 34,526.7 ns | 498.72 ns | 416.45 ns | 
 
+
+##### Core 3.0
 
 ``` ini
 
