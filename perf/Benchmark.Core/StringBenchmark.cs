@@ -16,9 +16,7 @@ namespace Benchmark.Core
     [RankColumn(NumeralSystem.Stars)]
     public class StringBenchmark
     {
-        //private static LiteStringBuilder m_strCustom = new LiteStringBuilder(64);
-        //private static System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
-
+        #region Normal
         [Benchmark]
         public string String_Interpolated()
         {
@@ -37,7 +35,8 @@ namespace Benchmark.Core
         [Benchmark]
         public string String_Concat()
         {
-            return string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue).Replace("373", "5428");
+            string str = string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue);
+            return str.Replace("373", "5428");
         }
 
 
@@ -59,7 +58,9 @@ namespace Benchmark.Core
             m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Replace("373", "5428");
             return m_strCustom.ToString();
         }
+        #endregion
 
+        #region BIGString
 
         private readonly static string str1 = new string('a', 1000);
         private readonly static string str2 = new string('b', 1000);
@@ -83,7 +84,8 @@ namespace Benchmark.Core
         [Benchmark]
         public string Large_String_Concat()
         {
-            return string.Concat(str1, str2, str3, str4).Replace("c", "z");
+            string str = string.Concat(str1, str2, str3, str4);
+            return str.Replace("c", "z");
         }
 
 
@@ -105,6 +107,6 @@ namespace Benchmark.Core
             m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4).Replace("c", "z");
             return m_strCustom.ToString();
         }
-
+        #endregion
     }
 }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Text;
 using System;
+using System.Buffers;
 
 namespace StringHelper
 {
@@ -18,11 +19,12 @@ namespace StringHelper
         private char[] _buffer = null;
         private int _bufferPos = 0;
         private int _charsCapacity = 0;
+        private readonly static char[] _charNumbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
-        /// <summary>
-        /// gets the size of data in the buffer pool
-        /// </summary>
-        public int Length
+/// <summary>
+/// gets the size of data in the buffer pool
+/// </summary>
+public int Length
         {
             get
             {
@@ -40,10 +42,12 @@ namespace StringHelper
             return new LiteStringBuilder(initialCapacity);
         }
 
+
+
         public LiteStringBuilder(int initialCapacity = 32)
         {
             _charsCapacity = initialCapacity > 0 ? initialCapacity : 32;
-            _buffer = new char[_charsCapacity];
+            _buffer = ArrayPool<char>.Shared.Rent(_charsCapacity);
         }
 
         public LiteStringBuilder(string value)
@@ -51,13 +55,13 @@ namespace StringHelper
             if (value != null)
             {
                 _charsCapacity = value.Length;
-                _buffer = new char[_charsCapacity];
+                _buffer = ArrayPool<char>.Shared.Rent(_charsCapacity);
                 this.Append(value);
             }
             else
             {
                 _charsCapacity = 32;
-                _buffer = new char[_charsCapacity];
+                _buffer = ArrayPool<char>.Shared.Rent(_charsCapacity);
             }
         }
 
@@ -74,7 +78,7 @@ namespace StringHelper
                 return string.Empty;
             }
 
-            return new string(_buffer, 0, _bufferPos);
+           return new string(_buffer, 0, _bufferPos);
         }
 
         public override bool Equals(object obj)
@@ -146,16 +150,16 @@ namespace StringHelper
             {
                 EnsureCapacity(n);
 
-                    int bytesSize = n * 2;
-                    unsafe
+                int bytesSize = n * 2;
+                unsafe
+                {
+                    fixed (char* valuePtr = value)
+                    fixed (char* destPtr = &_buffer[_bufferPos])
                     {
-                        fixed (char* valuePtr = value)
-                        fixed (char* destPtr = &_buffer[_bufferPos])
-                        {
 
-                            System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
-                        }
+                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
                     }
+                }
 
                 _bufferPos += n;
             }
@@ -224,10 +228,6 @@ namespace StringHelper
             return Append(value.ToString(CultureInfo.CurrentCulture));
         }
 
-        private readonly static char[] _charNumbers = new char[10]
-{
-            '0','1','2','3','4','5','6','7','8','9'
-};
 
         ///<summary>Append an sbyte with some memory allocation</summary>
         public LiteStringBuilder Append(sbyte value)
@@ -331,6 +331,7 @@ namespace StringHelper
 
             if (value >= 0 && value <= 9)
             {
+                //between 0-9
                 _buffer[_bufferPos++] = _charNumbers[value];
                 return this;
             }
@@ -455,7 +456,8 @@ namespace StringHelper
             int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
             int size = ((_bufferPos / oldstrLength) * (oldstrLength + deltaLength)) + 1;
             int index = 0;
-            var replacementChars = new char[size];
+            var pool = ArrayPool<char>.Shared;
+            var replacementChars = pool.Rent(size);
 
             // Create the new string into _replacement
             for (int i = 0; i < _bufferPos; i++)
@@ -483,6 +485,8 @@ namespace StringHelper
             EnsureCapacity(index - _bufferPos);
 
             System.Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
+            pool.Return(replacementChars);
+
             _bufferPos = index;
             return this;
         }
@@ -505,11 +509,11 @@ namespace StringHelper
                     //increase size by double
                     _charsCapacity *= 2;
                 }
-
-
-                char[] newChars = new char[_charsCapacity];
+                var pool = ArrayPool<char>.Shared;
+                char[] newChars = pool.Rent(_charsCapacity);
                 Buffer.BlockCopy(_buffer, 0, newChars, 0, _bufferPos * 2);
                 _buffer = newChars;
+                pool.Return(newChars);
             }
         }
 
