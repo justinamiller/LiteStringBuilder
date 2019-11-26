@@ -24,7 +24,7 @@ namespace StringHelper
 /// <summary>
 /// gets the size of data in the buffer pool
 /// </summary>
-public int Length
+        public int Length
         {
             get
             {
