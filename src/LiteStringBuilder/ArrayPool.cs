@@ -6,12 +6,13 @@ using System.Threading.Tasks;
 
 namespace StringHelper
 {
-    //internal class ArrayPool<T>
+    //internal class ArrayPool<T> 
     //{
+    //    public 
     //    readonly int _bufferLength;
     //    readonly object _gate;
     //    int _index;
-    //    T[][] buffers;
+    //    public static ArrayPool<T> Shared = new ArrayPoola<T>(10);
 
     //    public ArrayPool(int bufferLength)
     //    {
