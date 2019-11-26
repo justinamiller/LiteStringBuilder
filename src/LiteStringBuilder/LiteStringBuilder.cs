@@ -145,16 +145,17 @@ namespace StringHelper
             if (n > 0)
             {
                 EnsureCapacity(n);
-                int bytesSize = n * 2;
-                unsafe
-                {
-                    fixed (char* valuePtr = value)
-                    fixed (char* destPtr = &_buffer[_bufferPos])
+
+                    int bytesSize = n * 2;
+                    unsafe
                     {
-                
-                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                        fixed (char* valuePtr = value)
+                        fixed (char* destPtr = &_buffer[_bufferPos])
+                        {
+
+                            System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                        }
                     }
-                }
 
                 _bufferPos += n;
             }
@@ -211,7 +212,7 @@ namespace StringHelper
         ///<summary>Append an object.ToString(), allocate some memory</summary>
         public LiteStringBuilder Append(object value)
         {
-            if (value == null)
+            if (value is null)
                 return this;
 
             return Append(value.ToString());
@@ -220,13 +221,40 @@ namespace StringHelper
         ///<summary>Append an datetime with small memory allocation</summary>
         public LiteStringBuilder Append(DateTime value)
         {
-            return Append(value.ToString());
+            return Append(value.ToString(CultureInfo.CurrentCulture));
         }
 
         private readonly static char[] _charNumbers = new char[10]
 {
             '0','1','2','3','4','5','6','7','8','9'
 };
+
+        ///<summary>Append an sbyte with some memory allocation</summary>
+        public LiteStringBuilder Append(sbyte value)
+        {
+            return Append(value.ToString(CultureInfo.CurrentCulture));
+        }
+
+
+        ///<summary>Append an byte with some memory allocation</summary>
+        public LiteStringBuilder Append(byte value)
+        {
+            return Append(value.ToString(CultureInfo.CurrentCulture));
+        }
+
+
+
+        ///<summary>Append an uint without memory allocation</summary>
+        public LiteStringBuilder Append(uint value)
+        {
+            return Append((ulong)value, false);
+        }
+
+        ///<summary>Append an ulong without memory allocation</summary>
+        public LiteStringBuilder Append(ulong value)
+        {
+            return Append(value, false);
+        }
 
         ///<summary>Append an int without memory allocation</summary>
         public LiteStringBuilder Append(int value)
