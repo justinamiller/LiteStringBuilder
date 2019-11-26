@@ -7,10 +7,10 @@
     <Company>Justin Miller</Company>
     <RepositoryUrl>https://github.com/justinamiller/LiteStringBuilder</RepositoryUrl>
     <Description>Faster and less allocation, alternative to the System.Text.StringBuilder C# class.</Description>
-    <PackageTags>string, stringbuilder</PackageTags>
+    <PackageTags>string, stringbuilder, concat</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RootNamespace>StringHelper</RootNamespace>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -29,7 +29,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Buffers" Version="4.5.0" />
     <PackageReference Include="System.Memory" Version="4.5.3" />
   </ItemGroup>
 
