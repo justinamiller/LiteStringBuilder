@@ -148,27 +148,46 @@ namespace StringHelper
             int n = value?.Length ?? 0;
             if (n > 0)
             {
-                EnsureCapacity(n);
-                //  value.AsSpan().CopyTo(_buffer.AsSpan().Slice(_bufferPos));
-
-                //if (n >= 100)
+               EnsureCapacity(n);
+                //unsafe
                 //{
-                //    //large array
-                //    value.AsMemory().CopyTo(_buffer.AsMemory<char>().Slice(_bufferPos));
+                //    fixed (char* valuePtr = value)
+                //    {
+                //        char* source = valuePtr;
+                //        for (var i = 0; i < n; i++)
+                //        {
+                //            _buffer[_bufferPos + i] = *source++;
+                //        }
+                //    }
                 //}
-                //else
-                //{
-                    int bytesSize = n * 2;
-                    unsafe
-                    {
-                        fixed (char* valuePtr = value)
-                        fixed (char* destPtr = &_buffer[_bufferPos])
-                        {
 
-                            System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
-                        }
+                //for (var i = 0; i < n; i++)
+                //{
+                //    _buffer[_bufferPos + i] = value[i];
+                //}
+                 value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos,_charsCapacity-_bufferPos));
+                _bufferPos += n;
+            }
+            return this;
+        }
+
+                ///<summary>Append a string without memory allocation</summary>
+         private LiteStringBuilder AppendOLD(string value)
+        {
+            int n = value?.Length ?? 0;
+            if (n > 0)
+            {
+                EnsureCapacity(n);
+                int bytesSize = n * 2;
+                unsafe
+                {
+                    fixed (char* valuePtr = value)
+                    fixed (char* destPtr = &_buffer[_bufferPos])
+                    {
+                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                        //System.Buffer.MemoryCopy((byte*)valuePtr, (byte*)destPtr, bytesSize, bytesSize);
                     }
-          //      }
+                }
 
                 _bufferPos += n;
             }

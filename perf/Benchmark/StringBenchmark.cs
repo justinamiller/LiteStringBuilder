@@ -111,6 +111,7 @@ namespace Benchmark
             m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4).Replace("c", "z");
             return m_strCustom.ToString();
         }
+
         #endregion
     }
 }
