@@ -149,17 +149,26 @@ namespace StringHelper
             if (n > 0)
             {
                 EnsureCapacity(n);
+                //  value.AsSpan().CopyTo(_buffer.AsSpan().Slice(_bufferPos));
 
-                int bytesSize = n * 2;
-                unsafe
-                {
-                    fixed (char* valuePtr = value)
-                    fixed (char* destPtr = &_buffer[_bufferPos])
+                //if (n >= 100)
+                //{
+                //    //large array
+                //    value.AsMemory().CopyTo(_buffer.AsMemory<char>().Slice(_bufferPos));
+                //}
+                //else
+                //{
+                    int bytesSize = n * 2;
+                    unsafe
                     {
+                        fixed (char* valuePtr = value)
+                        fixed (char* destPtr = &_buffer[_bufferPos])
+                        {
 
-                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                            System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                        }
                     }
-                }
+          //      }
 
                 _bufferPos += n;
             }
