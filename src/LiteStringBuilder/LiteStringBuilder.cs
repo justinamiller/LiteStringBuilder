@@ -203,26 +203,37 @@ namespace StringHelper
         }
 
 
+        private readonly static char[][] s_bool = new char[2][]
+        {
+            new char[]{ 'F','a','l','s','e'},
+            new char[]{ 'T', 'r','u','e' }
+        };
+
         ///<summary>Append a bool without memory allocation</summary>
         public LiteStringBuilder Append(bool value)
         {
             if (value)
             {
-                return Append("True");
+                return Append(s_bool[1]);
             }
             else
             {
-                return Append("False");
+                return Append(s_bool[2]);
             }
         }
 
         ///<summary>Append a char[] without memory allocation</summary>
         public LiteStringBuilder Append(char[] value)
         {
-            int n = value.Length;
-            EnsureCapacity(n);
-            System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
-            _bufferPos += n;
+            int n = value?.Length ?? 0;
+            if (n > 0)
+            {
+                EnsureCapacity(n);
+                Array.Copy(value, 0, _buffer, _bufferPos, n);
+                //System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
+                _bufferPos += n;
+            }
+   
             return this;
         }
 
