@@ -24,7 +24,7 @@ namespace Benchmark
         [Benchmark]
         public string String_Interpolated()
         {
-            string str = $"PI= { Math.PI} _373= { 373 } {true} {short.MaxValue} {_dt}";
+            string str = $"PI= { Math.PI} _373= { 373 } {true} {short.MaxValue}{'z'}";
             return str.Replace("373", "5428");
         }
 
@@ -32,14 +32,14 @@ namespace Benchmark
         [Benchmark]
         public string String_Added()
         {
-            string str = "PI=" + Math.PI + "_373=" + 373 + true + short.MaxValue + _dt;
+            string str = "PI=" + Math.PI + "_373=" + 373 + true + short.MaxValue + 'z';
             return str.Replace("373", "5428");
         }
 
         [Benchmark]
         public string String_Concat()
         {
-            string str = string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue, _dt);
+            string str = string.Concat("PI=", Math.PI, "_373=", 373, true, short.MaxValue,'z');
             return str.Replace("373", "5428");
         }
 
@@ -48,8 +48,7 @@ namespace Benchmark
         public string StringBuilder()
         {
             System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(1);
-            //m_strBuilder.Length = 0;
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append(_dt).Replace("373", "5428");
+            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428");
             return m_strBuilder.ToString();
         }
 
@@ -58,8 +57,7 @@ namespace Benchmark
         public string LiteStringBuilder()
         {
             LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
-            // m_strCustom.Clear();
-            m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append(_dt).Replace("373", "5428");
+            m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428");
             return m_strCustom.ToString();
         }
         #endregion

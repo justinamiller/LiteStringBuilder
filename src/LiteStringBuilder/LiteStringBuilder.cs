@@ -149,22 +149,6 @@ namespace StringHelper
             if (n > 0)
             {
                EnsureCapacity(n);
-                //unsafe
-                //{
-                //    fixed (char* valuePtr = value)
-                //    {
-                //        char* source = valuePtr;
-                //        for (var i = 0; i < n; i++)
-                //        {
-                //            _buffer[_bufferPos + i] = *source++;
-                //        }
-                //    }
-                //}
-
-                //for (var i = 0; i < n; i++)
-                //{
-                //    _buffer[_bufferPos + i] = value[i];
-                //}
                  value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos,_charsCapacity-_bufferPos));
                 _bufferPos += n;
             }
@@ -211,7 +195,9 @@ namespace StringHelper
         ///<summary>Append a char without memory allocation</summary>
         public LiteStringBuilder Append(char value)
         {
-            EnsureCapacity(1);
+            if (_bufferPos >= _charsCapacity)
+                EnsureCapacity(1);
+
             _buffer[_bufferPos++] = value;
             return this;
         }
@@ -582,24 +568,36 @@ namespace StringHelper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
         {
-            if (_bufferPos + appendLength > _charsCapacity)
+            int capacity = _charsCapacity;
+            if (_bufferPos + appendLength > capacity)
             {
-                //fix allocation
-                // _charsCapacity= _bufferPos + appendLength;
-                if (appendLength > _charsCapacity)
+                int newSize = (int)((appendLength + capacity) * 1.5);
+                if (250 > newSize)
                 {
-                    //more than double size
-                    _charsCapacity += appendLength;
+                    capacity = 250;
                 }
                 else
                 {
-                    //increase size by double
-                    _charsCapacity *= 2;
+                    capacity = newSize;
                 }
+                //fix allocation
+                // _charsCapacity= _bufferPos + appendLength;
+
+                //if (appendLength > _charsCapacity)
+                //{
+                //    //more than double size
+                //    _charsCapacity += appendLength;
+                //}
+                //else
+                //{
+                //    //increase size by double
+                //    _charsCapacity *= 2;
+                //}
                 var pool = ArrayPool<char>.Shared;
-                char[] newChars = pool.Rent(_charsCapacity);
+                char[] newChars = pool.Rent(capacity);
                 Buffer.BlockCopy(_buffer, 0, newChars, 0, _bufferPos * 2);
                 _buffer = newChars;
+                _charsCapacity = capacity;
                 pool.Return(newChars);
             }
         }
