@@ -11,26 +11,26 @@ Because System.Text.StringBuilder does actually a lot of memory allocation when 
 ##### Framework 4.8
 ``` ini
 
-BenchmarkDotNet=v0.12.0, OS=Windows 10.0.17763.775 (1809/October2018Update/Redstone5)
-Intel Core i9-9880H CPU 2.30GHz, 1 CPU, 8 logical and 8 physical cores
-  [Host]     : .NET Framework 4.8 (4.8.3928.0), X86 LegacyJIT
-  Job-GLVCMQ : .NET Framework 4.8 (4.8.3928.0), X86 LegacyJIT
+BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18363
+Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+  [Host]     : .NET Framework 4.8 (4.8.4042.0), X86 LegacyJIT
+  Job-GLVCMQ : .NET Framework 4.8 (4.8.4042.0), X86 LegacyJIT
 
 Runtime=.NET 4.8  
 
 ```
-|                    Method |        Mean |     Error |    StdDev | 
-|-------------------------- |------------:|----------:|----------:|
-|         LiteStringBuilder |    532.0 ns |  10.67 ns |  14.61 ns | 
-|              String_Added |    653.0 ns |  12.98 ns |  27.39 ns | 
-|             String_Concat |    675.3 ns |  15.43 ns |  42.76 ns |
-|             StringBuilder |    741.9 ns |  14.63 ns |  16.27 ns | 
-|       String_Interpolated |    802.0 ns |  17.25 ns |  49.78 ns |
-|   Large_LiteStringBuilder | 15,598.1 ns | 228.05 ns | 202.16 ns | 
-|       Large_String_Concat | 16,164.7 ns |  70.41 ns |  58.80 ns | 
-| Large_String_Interpolated | 16,283.3 ns |  68.37 ns |  60.61 ns | 
-|        Large_String_Added | 16,384.8 ns | 286.11 ns | 238.91 ns |
-|       Large_StringBuilder | 34,526.7 ns | 498.72 ns | 416.45 ns | 
+|                    Method |        Mean |     Error |      StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------- |------------:|----------:|------------:|-------:|------:|------:|----------:|
+|              String_Added |    613.7 ns |  12.02 ns |    11.24 ns | 0.0725 |     - |     - |     345 B |
+|             String_Concat |    619.3 ns |   6.88 ns |     5.37 ns | 0.0858 |     - |     - |     408 B |
+|         LiteStringBuilder |    738.3 ns |  13.77 ns |    12.88 ns | 0.0429 |     - |     - |     204 B |
+|       String_Interpolated |    740.5 ns |   7.73 ns |     7.23 ns |  0.0782 |     - |     - |     369 B |
+|             StringBuilder |    823.9 ns |  16.27 ns |    14.43 ns | 0.1116 |     - |     - |     529 B |
+|   Large_LiteStringBuilder | 13,043.1 ns |  79.89 ns |    62.37 ns | 1.7242 |     - |     - |    8192 B |
+|       Large_String_Concat | 15,707.7 ns | 813.10 ns |   798.58 ns | 3.3875 |     - |     - |   16077 B |
+| Large_String_Interpolated | 16,491.2 ns | 382.03 ns | 1,108.35 ns | 3.4027 |     - |     - |   16132 B |
+|        Large_String_Added | 17,051.5 ns | 255.97 ns |   226.91 ns |  3.3875 |     - |     - |   16077 B |
+|       Large_StringBuilder | 33,344.6 ns | 652.89 ns | 1,035.56 ns |  6.0425 |     - |     - |   28699 B |
 
 
 ##### Core 3.0
