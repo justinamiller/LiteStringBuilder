@@ -24,6 +24,34 @@ namespace LiteStringBuilder.Tests
             Assert.AreEqual(sb.ToString(), "Hello");
         }
 
+        private static string GetString(char c)
+        {
+            return new string(c, 1000);
+        }
+        [TestMethod]
+        public void TestLiteStringBuilderThreaded()
+        {
+            var list = new System.Collections.Concurrent.ConcurrentDictionary<int,string>();
+            System.Threading.Tasks.Parallel.For(0, 1000, (i) =>
+            {
+                var fs = new StringHelper.LiteStringBuilder(1);
+                fs.Append(GetString((char)(48 + (i % 10))));
+                list.TryAdd(i, fs.ToString());
+        });
+
+            var dic = list.ToArray();
+            for(var i = 0; i < 1000; i++)
+            {
+                var key = dic[i].Key;
+                var value = dic[i].Value;
+                var str = GetString((char)(48 + (key % 10)));
+                if (string.Compare(str, value) != 0)
+                {
+                    Assert.Fail("Not thread safe");
+                }
+            }
+        }
+
         [TestMethod]
         public void TestLength()
         {
@@ -262,6 +290,20 @@ namespace LiteStringBuilder.Tests
             sb.Append("ABCabcABCdefgABC");
             sb.Replace("A", "123");
             Assert.AreEqual(sb.ToString(), "123BCabc123BCdefg123BC");
+
+            sb.Replace("1", "one");
+            Assert.AreEqual(sb.ToString(), "one23BCabcone23BCdefgone23BC");
+
+            sb.Replace("2", "");
+            Assert.AreEqual(sb.ToString(), "one3BCabcone3BCdefgone3BC");
+
+            sb.Replace("3", "4");
+            Assert.AreEqual(sb.ToString(), "one4BCabcone4BCdefgone4BC");
+
+
+            sb.Replace("one", "1");
+            Assert.AreEqual(sb.ToString(), "14BCabc14BCdefg14BC");
+
 
             sb.Clear();
             Assert.AreEqual(sb.Replace(null,"HI"), sb);
