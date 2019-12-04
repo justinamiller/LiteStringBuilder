@@ -10,7 +10,7 @@ namespace StringHelper
     internal static class Utilities
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetIntLength(ulong n)
+        internal static int GetIntLength(ulong n)
         {
             if (n < 10L) return 1;
             if (n < 100L) return 2;

@@ -30,7 +30,7 @@ namespace Benchmark
         //}
 
 
-        #region Normal
+        //#region Normal
         //[Benchmark]
         //public string StringBuilder()
         //{
@@ -48,8 +48,8 @@ namespace Benchmark
         //    return m_strCustom.ToString();
         //}
 
-        #endregion
-        //#region Normal
+        //#endregion
+        #region Normal
         //[Benchmark]
         //public string String_Interpolated()
         //{
@@ -73,31 +73,31 @@ namespace Benchmark
         //}
 
 
-        //[Benchmark]
-        //public string StringBuilder()
-        //{
-        //    System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(1);
-        //    m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
-        //    return m_strBuilder.ToString();
-        //}
+        [Benchmark]
+        public string StringBuilder()
+        {
+            System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(1);
+            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
+            return m_strBuilder.ToString();
+        }
 
 
-        //[Benchmark]
-        //public string LiteStringBuilder()
-        //{
-        //    LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
-        //    m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
-        //    return m_strCustom.ToString();
-        //}
+        [Benchmark]
+        public string LiteStringBuilder()
+        {
+            LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
+            m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
+            return m_strCustom.ToString();
+        }
 
-        //#endregion
+        #endregion
 
         //#region BIGString
 
-        private readonly static string str1 = new string('a', 1000);
-        private readonly static string str2 = new string('b', 1000);
-        private readonly static string str3 = new string('c', 1000);
-        private readonly static string str4 = new string('d', 1000);
+        //private readonly static string str1 = new string('a', 1000);
+        //private readonly static string str2 = new string('b', 1000);
+        //private readonly static string str3 = new string('c', 1000);
+        //private readonly static string str4 = new string('d', 1000);
 
         //[Benchmark]
         //public string Large_String_Interpolated()

@@ -15,7 +15,6 @@ namespace FrameworkConsole
         private static LiteStringBuilder m_strCustom2 = new LiteStringBuilder(64);
         private static System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(64);
 
-
         private delegate string Test();
 
         private static string String_Added()

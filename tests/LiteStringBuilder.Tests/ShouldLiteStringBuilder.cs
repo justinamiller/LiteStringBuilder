@@ -422,7 +422,7 @@ namespace LiteStringBuilder.Tests
         {
             var pool = new SimpleArrayPool<int>();
             var list = new List<int[]>();
-            for(var i = 0; i < 5000; i++)
+            for(var i = 0; i < 1000; i++)
             {
                 list.Add(pool.Rent(i));
             }
