@@ -19,7 +19,36 @@ namespace Benchmark
     {
         private DateTime _dt = DateTime.Now;
 
+        //static StringBenchmark()
+        //{
+        //    var sb = new StringBuilder();
+        //    sb.Append("test");
+        //    var sb1 = new LiteStringBuilder();
+        //    sb1.Append("test");
+        //    sb.ToString();
+        //    sb1.ToString();
+        //}
 
+
+        #region Normal
+        //[Benchmark]
+        //public string StringBuilder()
+        //{
+        //    System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(1);
+        //    m_strBuilder.Append("PI=").Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
+        //    return m_strBuilder.ToString();
+        //}
+
+
+        //[Benchmark]
+        //public string LiteStringBuilder()
+        //{
+        //    LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
+        //    m_strCustom.Append("PI=").Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
+        //    return m_strCustom.ToString();
+        //}
+
+        #endregion
         //#region Normal
         //[Benchmark]
         //public string String_Interpolated()
@@ -60,14 +89,15 @@ namespace Benchmark
         //    m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
         //    return m_strCustom.ToString();
         //}
+
         //#endregion
 
         //#region BIGString
 
-        //private readonly static string str1 = new string('a', 1000);
-        //private readonly static string str2 = new string('b', 1000);
-        //private readonly static string str3 = new string('c', 1000);
-        //private readonly static string str4 = new string('d', 1000);
+        private readonly static string str1 = new string('a', 1000);
+        private readonly static string str2 = new string('b', 1000);
+        private readonly static string str3 = new string('c', 1000);
+        private readonly static string str4 = new string('d', 1000);
 
         //[Benchmark]
         //public string Large_String_Interpolated()
@@ -112,73 +142,47 @@ namespace Benchmark
 
         //#endregion
 
-        #region BIGArray
+        //#region BIGArray
 
-        private readonly static char[] _bigArray1;
-        private readonly static char[] _bigArray2;
-        private readonly static char[] _bigArray3;
+        //private readonly static char[] _bigArray1;
+        //private readonly static char[] _bigArray2;
+        //private readonly static char[] _bigArray3;
 
-        static StringBenchmark()
-        {
-            _bigArray1 = new char[char.MaxValue];
-            _bigArray2 = new char[char.MaxValue];
-            _bigArray3 = new char[char.MaxValue];
-            for (var i = 0; i < char.MaxValue; i++)
-            {
-                _bigArray1[i] = (char)i;
-                _bigArray2[i] = (char)i;
-                _bigArray3[i] = (char)i;
-            }
-        }
-
-
-        [Benchmark]
-        public string LargeArray_StringBuilder()
-        {
-            System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(1);
-            //m_strBuilder.Length = 0;
-            m_strBuilder.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
-            return m_strBuilder.ToString();
-        }
+        //static StringBenchmark()
+        //{
+        //    _bigArray1 = new char[char.MaxValue];
+        //    _bigArray2 = new char[char.MaxValue];
+        //    _bigArray3 = new char[char.MaxValue];
+        //    for (var i = 0; i < char.MaxValue; i++)
+        //    {
+        //        _bigArray1[i] = (char)i;
+        //        _bigArray2[i] = (char)i;
+        //        _bigArray3[i] = (char)i;
+        //    }
+        //}
 
 
-        [Benchmark]
-        public string LargeArray_LiteStringBuilder()
-        {
-            LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
-            // m_strCustom.Clear();
-            m_strCustom.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
-            return m_strCustom.ToString();
-        }
+        //[Benchmark]
+        //public string LargeArray_StringBuilder()
+        //{
+        //    System.Text.StringBuilder m_strBuilder = new System.Text.StringBuilder(1);
+        //    //m_strBuilder.Length = 0;
+        //    m_strBuilder.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
+        //    return m_strBuilder.ToString();
+        //}
 
-        [Benchmark]
-        public string LargeArray_LiteStringBuilder1()
-        {
-            LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
-            // m_strCustom.Clear();
-            m_strCustom.Append1(_bigArray1).Append1(_bigArray2).Append1(_bigArray3);
-            return m_strCustom.ToString();
-        }
 
-        [Benchmark]
-        public string LargeArray_LiteStringBuilder2()
-        {
-            LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
-            // m_strCustom.Clear();
-            m_strCustom.Append2(_bigArray1).Append2(_bigArray2).Append2(_bigArray3);
-            return m_strCustom.ToString();
-        }
+        //[Benchmark]
+        //public string LargeArray_LiteStringBuilder()
+        //{
+        //    LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
+        //    // m_strCustom.Clear();
+        //    m_strCustom.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
+        //    return m_strCustom.ToString();
+        //}
 
-        [Benchmark]
-        public string LargeArray_LiteStringBuilder3()
-        {
-            LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
-            // m_strCustom.Clear();
-            m_strCustom.Append3(_bigArray1).Append3(_bigArray2).Append3(_bigArray3);
-            return m_strCustom.ToString();
-        }
 
-        #endregion
+        //#endregion
 
         //#region PrimativeTypes
 
@@ -223,6 +227,7 @@ namespace Benchmark
         //    m_strCustom.Append(char.MaxValue).Append(Int16.MaxValue).Append(Int32.MaxValue).Append(Int64.MaxValue).Append(DateTime.MaxValue).Append(double.MaxValue).Append(float.MaxValue).Append(true).Append(byte.MaxValue).Append(sbyte.MaxValue);
         //    return m_strCustom.ToString();
         //}
+
 
         //#endregion 
 

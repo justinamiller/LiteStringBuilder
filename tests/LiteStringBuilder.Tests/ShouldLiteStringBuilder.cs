@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
 using StringHelper;
+using System.Collections.Generic;
 
 namespace LiteStringBuilder.Tests
 {
@@ -169,15 +170,6 @@ namespace LiteStringBuilder.Tests
             Assert.IsTrue(sb.Length == 0);
 
 
-            sb.Append(new StringBuilder().Append('a', 5000).ToString());
-            Assert.IsTrue(sb.Length == 5000);
-
-            sb.Append(new StringBuilder().Append('a', 10000).ToString());
-            Assert.IsTrue(sb.Length == 15000);
-
-            sb.Append(new StringBuilder().Append('a', 1000).ToString());
-            Assert.IsTrue(sb.Length == 16000);
-
             sb.Clear();
             Assert.IsTrue(sb.Length == 0);
             sb.Append(true);
@@ -189,8 +181,42 @@ namespace LiteStringBuilder.Tests
 
 
             sb.Clear();
+            sb.Append("a");
+            Assert.AreEqual(sb.ToString(), "a");
+
+            sb.Clear();
+            sb.Append("ab");
+            Assert.AreEqual(sb.ToString(), "ab");
+
+
+            sb.Clear();
+            sb.Append("abc");
+            Assert.AreEqual(sb.ToString(), "abc");
+
+            sb.Clear();
+            sb.Append("abcd");
+            Assert.AreEqual(sb.ToString(), "abcd");
+
+            sb.Clear();
             sb.Append(0);
             Assert.AreEqual(sb.ToString(), "0");
+
+            sb.Clear();
+            sb.Append(Convert.ToByte('a'));
+            Assert.AreEqual(sb.ToString(), Convert.ToByte('a').ToString());
+
+            sb.Clear();
+            sb.Append((sbyte)Convert.ToByte('a'));
+            Assert.AreEqual(sb.ToString(), ((sbyte)Convert.ToByte('a')).ToString());
+
+            var dt = DateTime.Now;
+            sb.Clear();
+            sb.Append(dt);
+            Assert.AreEqual(sb.ToString(), dt.ToString());
+
+            sb.Clear();
+            sb.Append((float)1.1234);
+            Assert.AreEqual(sb.ToString(), "1.1234");
 
             sb.Clear();
             sb.Append(1000);
@@ -235,6 +261,14 @@ namespace LiteStringBuilder.Tests
 
             sb.Clear();
             sb.Append((short)1000);
+            Assert.AreEqual(sb.ToString(), "1000");
+
+            sb.Clear();
+            sb.Append((ulong)1000);
+            Assert.AreEqual(sb.ToString(), "1000");
+
+            sb.Clear();
+            sb.Append((uint)1000);
             Assert.AreEqual(sb.ToString(), "1000");
 
             sb.Clear();
@@ -356,6 +390,70 @@ namespace LiteStringBuilder.Tests
             sb.Set(null, "", null);
             Assert.IsTrue(sb.IsEmpty());
             Assert.AreEqual(sb.ToString(), "");
+        }
+
+        private static ulong Power(ulong value, int power)
+        {
+            ulong val = 0;
+          for(int i = 0; i < power; i++)
+            {
+                val = val * value; 
+            }
+            return val;
+        }
+
+
+        [TestMethod]
+        public void TestGetIntLength()
+        {
+            for(int i = 0; i < ulong.MaxValue.ToString("###0").Length; i++)
+            {
+                int a = Utilities.GetIntLength((ulong)Math.Pow(10, i));
+                int b= Math.Pow(10, i).ToString("###0").Length;
+
+                Assert.AreEqual(a, b);
+            }
+         
+        }
+
+
+        [TestMethod]
+        public void TestArrayPool()
+        {
+            var pool = new SimpleArrayPool<int>();
+            var list = new List<int[]>();
+            for(var i = 0; i < 5000; i++)
+            {
+                list.Add(pool.Rent(i));
+            }
+
+            foreach(var l in list)
+            {
+                pool.Return(l);
+            }
+
+            pool.Return(Array.Empty<int>());
+            pool.Rent(int.MaxValue);
+
+            try
+            {
+                pool.Rent(-1);
+                Assert.Fail("Should not be here");
+            }
+            catch (Exception)
+            {
+                Assert.IsTrue(true);
+            }
+
+            try
+            {
+                pool.Return(null);
+                Assert.Fail("Should not be here");
+            }
+            catch (Exception)
+            {
+                Assert.IsTrue(true);
+            }
         }
     }
 }

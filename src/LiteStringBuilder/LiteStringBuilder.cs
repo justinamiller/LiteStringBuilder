@@ -5,8 +5,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Text;
 using System;
-using System.Buffers;
 using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
+
 namespace StringHelper
 {
     ///<summary>
@@ -21,10 +22,21 @@ namespace StringHelper
         private int _charsCapacity = 0;
         private readonly static char[] _charNumbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         private readonly static CultureInfo s_Culture = CultureInfo.CurrentCulture;
+        private readonly static SimpleArrayPool<char> s_PoolInstance = new SimpleArrayPool<char>();
 
-/// <summary>
-/// gets the size of data in the buffer pool
-/// </summary>
+
+#pragma warning disable HAA0501 // Explicit new array type allocation
+        private readonly static char[][] s_bool = new char[2][]
+#pragma warning restore HAA0501 // Explicit new array type allocation
+  {
+            new char[]{ 'F','a','l','s','e'},
+            new char[]{ 'T', 'r','u','e' }
+  };
+
+
+        /// <summary>
+        /// gets the size of data in the buffer pool
+        /// </summary>
         public int Length
         {
             get
@@ -43,34 +55,32 @@ namespace StringHelper
             return new LiteStringBuilder(initialCapacity);
         }
 
-
-
         public LiteStringBuilder(int initialCapacity = 32)
         {
             _charsCapacity = initialCapacity > 0 ? initialCapacity : 32;
-            _buffer = ArrayPool<char>.Shared.Rent(_charsCapacity);
+            _buffer = s_PoolInstance.Rent(_charsCapacity);
         }
 
-        /// <summary>
-        /// return buffer back to the pool
-        /// </summary>
-        ~LiteStringBuilder()
-        {
-            ArrayPool<char>.Shared.Return(_buffer);
-        }
+        ///// <summary>
+        ///// return buffer back to the pool
+        ///// </summary>
+        //~LiteStringBuilder()
+        //{
+        //    ArrayPool<char>.Shared.Return(_buffer);
+        //}
 
         public LiteStringBuilder(string value)
         {
             if (value != null)
             {
                 _charsCapacity = value.Length;
-                _buffer = ArrayPool<char>.Shared.Rent(_charsCapacity);
+                _buffer = s_PoolInstance.Rent(_charsCapacity);
                 this.Append(value);
             }
             else
             {
                 _charsCapacity = 32;
-                _buffer = ArrayPool<char>.Shared.Rent(_charsCapacity);
+                _buffer = s_PoolInstance.Rent(_charsCapacity);
             }
         }
 
@@ -87,7 +97,7 @@ namespace StringHelper
                 return string.Empty;
             }
 
-           return new string(_buffer, 0, _bufferPos);
+            return new string(_buffer, 0, _bufferPos);
         }
 
         public override bool Equals(object obj)
@@ -157,15 +167,32 @@ namespace StringHelper
             int n = value?.Length ?? 0;
             if (n > 0)
             {
-               EnsureCapacity(n);
-                 value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos,_charsCapacity-_bufferPos));
+                EnsureCapacity(n);
+                if (n <= 3)
+                {
+                    _buffer[_bufferPos] = value[0];
+                    if (n > 2)
+                    {
+                        _buffer[_bufferPos + 1] = value[1];
+                        _buffer[_bufferPos + 2] = value[2];
+                    }
+                    else if (n>1)
+                    {
+                        _buffer[_bufferPos + 1] = value[1];
+                    }
+                }
+                else
+                {
+                    value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
+                }
+
                 _bufferPos += n;
             }
             return this;
         }
 
-                ///<summary>Append a string without memory allocation</summary>
-         private LiteStringBuilder InternalAppendSafe(string value)
+        ///<summary>Append a string without memory allocation</summary>
+        private LiteStringBuilder InternalAppendSafe(string value)
         {
             int n = value?.Length ?? 0;
             if (n > 0)
@@ -187,6 +214,7 @@ namespace StringHelper
 
             return this;
         }
+
 
         ///<summary>Generate a new line</summary>
         public LiteStringBuilder AppendLine()
@@ -212,11 +240,7 @@ namespace StringHelper
         }
 
 
-        private readonly static char[][] s_bool = new char[2][]
-        {
-            new char[]{ 'F','a','l','s','e'},
-            new char[]{ 'T', 'r','u','e' }
-        };
+
 
         ///<summary>Append a bool without memory allocation</summary>
         public LiteStringBuilder Append(bool value)
@@ -233,6 +257,7 @@ namespace StringHelper
             }
         }
 
+
         ///<summary>Append a char[] without memory allocation</summary>
         public LiteStringBuilder Append(char[] value)
         {
@@ -240,92 +265,12 @@ namespace StringHelper
             if (n > 0)
             {
                 EnsureCapacity(n);
-
-                //unsafe
-                //{
-                //    fixed (char* valueChars = &value[startIndex])
-                //        Append(valueChars, charCount);
-                //}
-
-                //Array.Copy(value, 0, _buffer, _bufferPos, n);
                 Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
                 _bufferPos += n;
             }
-   
-            return this;
-        }
-
-        public LiteStringBuilder Append1(char[] value)
-        {
-            int n = value?.Length ?? 0;
-            if (n > 0)
-            {
-                EnsureCapacity(n);
-
-                value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-
-                //unsafe
-                //{
-                //    fixed (char* valueChars = &value[startIndex])
-                //        Append(valueChars, charCount);
-                //}
-
-                //System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
-                _bufferPos += n;
-            }
 
             return this;
         }
-
-
-        public LiteStringBuilder Append2(char[] value)
-        {
-            int n = value?.Length ?? 0;
-            if (n > 0)
-            {
-                EnsureCapacity(n);
-
-                //unsafe
-                //{
-                //    fixed (char* valueChars = &value[startIndex])
-                //        Append(valueChars, charCount);
-                //}
-
-                Array.Copy(value, 0, _buffer, _bufferPos, n);
-                //System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
-                _bufferPos += n;
-            }
-
-            return this;
-        }
-
-        public LiteStringBuilder Append3(char[] value)
-        {
-            int n = value?.Length ?? 0;
-            if (n > 0)
-            {
-                EnsureCapacity(n);
-
-
-                int bytesSize = n * 2;
-                unsafe
-                {
-                    fixed (char* valuePtr = &value[0])
-                    fixed (char* destPtr = &_buffer[_bufferPos])
-                    {
-                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
-                        //System.Buffer.MemoryCopy((byte*)valuePtr, (byte*)destPtr, bytesSize, bytesSize);
-                    }
-                }
-
-                //Array.Copy(value, 0, _buffer, _bufferPos, n);
-                //System.Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
-                _bufferPos += n;
-            }
-
-            return this;
-        }
-
 
         ///<summary>Append an object.ToString(), allocate some memory</summary>
         public LiteStringBuilder Append(object value)
@@ -391,17 +336,6 @@ namespace StringHelper
             return InternalAppendSafe(value.ToString(s_Culture));
         }
 
-        public LiteStringBuilder Append(short value)
-        {
-            if (value < 0)
-            {
-                int val = (int)value;
-                val = -val;
-                return Append((ulong)val, true);
-            }
-
-            return Append((ulong)value, false);
-        }
 
         public LiteStringBuilder Append(long value)
         {
@@ -413,63 +347,36 @@ namespace StringHelper
             return Append((ulong)value, isNegative);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetIntLength(ulong n)
-        {
-            int num = 0;
-            do
-            {
-                num++;
-                n /= 10uL;
-            }
-            while (n != 0uL);
-            return num;
-        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private LiteStringBuilder Append(ulong value, bool isNegative)
         {
             // Allocate enough memory to handle any ulong number
-            int length = GetIntLength(value);
+            int length = Utilities.GetIntLength(value);
 
-            if (isNegative)
-            {
-                length++;
-            }
-            EnsureCapacity(length);
 
+            EnsureCapacity(length + (isNegative ? 1:0));
+            var buffer = _buffer;
             // Handle the negative case
             if (isNegative)
             {
-                _buffer[_bufferPos++] = '-';
+                buffer[_bufferPos++] = '-';
             }
-
-            if (value >= 0 && value <= 9)
+            if (value <= 9)
             {
                 //between 0-9
-                _buffer[_bufferPos++] = _charNumbers[value];
+                buffer[_bufferPos++] = _charNumbers[value];
                 return this;
             }
 
-            // Copy the digits in reverse order
-            int nbChars = 0;
+            // Copy the digits with reverse in mind.
+            _bufferPos += length;
+            int nbChars = _bufferPos-1;
             do
             {
-                _buffer[_bufferPos++] = _charNumbers[value % 10];
+                buffer[nbChars--] = _charNumbers[value % 10];
                 value /= 10;
-                nbChars++;
             } while (value != 0);
-
-            // Reverse the result
-            for (int i = nbChars / 2 - 1; i >= 0; i--)
-            {
-                int aPtr = _bufferPos - i - 1;
-                int bPtr = _bufferPos - nbChars + i;
-
-                char c = _buffer[aPtr];
-                _buffer[aPtr] = _buffer[bPtr];
-                _buffer[bPtr] = c;
-            }
-
 
             return this;
         }
@@ -479,6 +386,10 @@ namespace StringHelper
         {
             return InternalAppendSafe(value.ToString(s_Culture));
         }
+
+#if !NETSTANDARD1_3
+        [ExcludeFromCodeCoverage]
+#endif
         private LiteStringBuilder InternalAppend(float valueF)
         {
             double value = valueF;
@@ -539,6 +450,10 @@ namespace StringHelper
 
             return this;
         }
+
+#if !NETSTANDARD1_3
+        [ExcludeFromCodeCoverage]
+#endif
         private LiteStringBuilder InternalAppend(double value)
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
@@ -629,8 +544,7 @@ namespace StringHelper
             int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
             int size = ((_bufferPos / oldstrLength) * (oldstrLength + deltaLength)) + 1;
             int index = 0;
-            var pool = ArrayPool<char>.Shared;
-            char[] replacementChars= null;
+            char[] replacementChars = null;
             int replaceIndex = 0;
             char firstChar = oldStr[0];
             // Create the new string into _replacement
@@ -648,8 +562,10 @@ namespace StringHelper
                 {
                     if (replaceIndex == 0)
                     {
-                        replacementChars = pool.Rent(size);
-                        Array.Copy(_buffer, 0, replacementChars, 0, i);
+                        replacementChars = s_PoolInstance.Rent(size);
+                        //copy first set of char that did not match.
+                        Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
+                       // Array.Copy(_buffer, 0, replacementChars, 0, i);
                         index = i;
                     }
 
@@ -659,7 +575,7 @@ namespace StringHelper
                         for (int k = 0; k < newStrLength; k++)
                             replacementChars[index++] = newStr[k];
                 }
-                else if(replaceIndex>0)// No replacement, copy the old character
+                else if (replaceIndex > 0)// No replacement, copy the old character
                     replacementChars[index++] = _buffer[i];
             }//end for
 
@@ -667,8 +583,8 @@ namespace StringHelper
             {
                 // Copy back the new string into _chars
                 EnsureCapacity(index - _bufferPos);
-                System.Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
-                pool.Return(replacementChars);
+                Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
+                s_PoolInstance.Return(replacementChars);
                 _bufferPos = index;
             }
 
@@ -677,14 +593,15 @@ namespace StringHelper
         }
 
 
-     //   [MethodImpl(MethodImplOptions.AggressiveInlining)]
+         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
         {
             int capacity = _charsCapacity;
             int pos = _bufferPos;
             if (pos + appendLength > capacity)
             {
-                int newSize = (int)((appendLength + capacity) * 1.5);
+                // int newSize = (int)((appendLength + capacity) * 1.5);
+               int  newSize = capacity + appendLength;
                 if (250 > newSize)
                 {
                     capacity = 250;
@@ -706,8 +623,8 @@ namespace StringHelper
                 //    //increase size by double
                 //    _charsCapacity *= 2;
                 //}
-                var pool = ArrayPool<char>.Shared;
-                char[] newBuffer = pool.Rent(capacity);
+
+                char[] newBuffer = s_PoolInstance.Rent(capacity);
                 // char[] newBuffer = ArrayPool<char>.Shared.Rent(capacity);
                 //char[] newBuffer = new char[capacity];
                 if (pos > 0)
@@ -715,7 +632,7 @@ namespace StringHelper
                     //copy data over as bytes
                     Buffer.BlockCopy(_buffer, 0, newBuffer, 0, pos * 2);
                     //binary copy can return.
-                    pool.Return(_buffer);
+                    s_PoolInstance.Return(_buffer);
                 }
 
                 _buffer = null;
