@@ -435,25 +435,6 @@ namespace LiteStringBuilder.Tests
             pool.Return(Array.Empty<int>());
             pool.Rent(int.MaxValue);
 
-            try
-            {
-                pool.Rent(-1);
-                Assert.Fail("Should not be here");
-            }
-            catch (Exception)
-            {
-                Assert.IsTrue(true);
-            }
-
-            try
-            {
-                pool.Return(null);
-                Assert.Fail("Should not be here");
-            }
-            catch (Exception)
-            {
-                Assert.IsTrue(true);
-            }
         }
     }
 }

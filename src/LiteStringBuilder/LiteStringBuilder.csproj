@@ -6,11 +6,11 @@
     <Authors>Justin Miller</Authors>
     <Company>Justin Miller</Company>
     <RepositoryUrl>https://github.com/justinamiller/LiteStringBuilder</RepositoryUrl>
-    <Description>Faster and less allocation, alternative to the System.Text.StringBuilder C# class.</Description>
+    <Description>Faster and less memory allocation alternative to the System.Text.StringBuilder C# class.</Description>
     <PackageTags>string, stringbuilder, concat</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RootNamespace>StringHelper</RootNamespace>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

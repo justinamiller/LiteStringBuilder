@@ -11,7 +11,6 @@ namespace StringHelper
 {
     internal sealed class SimpleArrayPool<T>
     {
-        private static T[] s_emptyArray;
         private readonly Container[] _containers;
         
 
@@ -61,13 +60,9 @@ namespace StringHelper
 
         public  T[] Rent(int minimumLength)
         {
-            if (minimumLength < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(minimumLength));
-            }
             if (minimumLength == 0)
             {
-                return s_emptyArray ?? (s_emptyArray = Array.Empty<T>());
+                return Array.Empty<T>();
             }
 
             int index1 =SelectContainerIndex(minimumLength);
@@ -98,12 +93,7 @@ namespace StringHelper
 
         public  void Return(T[] array)
         {
-            if (array == null)
-            {
-                throw new ArgumentNullException(nameof(array));
-            }
-
-            int length = array.Length;
+            int length = array?.Length ?? 0;
             if (length == 0)
             {
                 //empty length no need to add
@@ -183,7 +173,8 @@ namespace StringHelper
             {
                 if (array.Length != this._bufferLength) 
                 {
-                    throw new ArgumentException("BufferNotFromPool", nameof(array));
+                    //not from buffer pool
+                    return;
                 }
         
                 bool lockTaken = false;
