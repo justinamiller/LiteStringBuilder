@@ -16,6 +16,7 @@ namespace Benchmark
     {
         static void Main(string[] args)
         {
+
             var config = ManualConfig.Create(DefaultConfig.Instance);
             config.Add(MemoryDiagnoser.Default);
       

@@ -86,6 +86,10 @@ namespace Benchmark
         public string LiteStringBuilder()
         {
             LiteStringBuilder m_strCustom = new LiteStringBuilder(1);
+            m_strCustom.Append<char>('a', 'b');
+            m_strCustom.Append<int>(1, 2, 3, 4);
+            m_strCustom.Append("TEST", "TEST", "TEST");
+            m_strCustom.Append("TEST", true, "TEST");
             m_strCustom.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
             return m_strCustom.ToString();
         }

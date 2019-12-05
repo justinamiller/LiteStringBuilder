@@ -29,6 +29,25 @@ namespace LiteStringBuilder.Tests
         {
             return new string(c, 1000);
         }
+
+        [TestMethod]
+        public void TestCorruptStrings()
+        {
+            var chars = new char[char.MaxValue];
+            for(var i = char.MinValue; i < chars.Length; i++)
+            {
+                chars[i] = i;
+            }
+            var str = new string(chars);
+            var sb = new StringHelper.LiteStringBuilder();
+            sb.Append(chars);
+
+            Assert.AreEqual(sb.ToString(), str);
+
+            Assert.AreEqual(sb.Length, str.Length);
+            Assert.AreEqual(sb.ToString().Length, sb.Length);
+        }
+
         [TestMethod]
         public void TestLiteStringBuilderThreaded()
         {
@@ -160,6 +179,62 @@ namespace LiteStringBuilder.Tests
         }
 
         [TestMethod]
+        public void TestIndex()
+        {
+            var sb = StringHelper.LiteStringBuilder.Create();
+            sb.Append("abcd");
+            try
+            {
+                var c = sb[5];
+                Assert.Fail("Should have exception");
+            }
+            catch (Exception)
+            {
+                Assert.IsTrue(true);
+            }
+
+            try
+            {
+                sb[5] = 'c';
+                Assert.Fail("Should have exception");
+            }
+            catch (Exception)
+            {
+                Assert.IsTrue(true);
+            }
+
+
+            Assert.AreEqual(sb[1], 'b');
+            sb[1] = 'z';
+            Assert.AreEqual(sb[1], 'z');
+        }
+
+        [TestMethod]
+        public void TestAppendT()
+        {
+            var sb = StringHelper.LiteStringBuilder.Create();
+            sb.Append<int>(null);
+            Assert.AreEqual(sb.Length, 0);
+            sb.Append<string>("", null, "1");
+            Assert.AreEqual(sb.Length, 1);
+            sb.Clear();
+            sb.Append<int>(1, 2, 3, 4, 5);
+            Assert.AreEqual(sb.Length, 5);
+            sb.Clear();
+
+            sb.Append<int>(1);
+            Assert.AreEqual(sb.Length, 1);
+        }
+
+        [TestMethod]
+        public void TestAppendObjects()
+        {
+            var sb = StringHelper.LiteStringBuilder.Create();
+            sb.Append("Test", 'c', true, double.MaxValue, int.MaxValue, short.MaxValue, decimal.MaxValue, double.MaxValue, float.MaxValue, DateTime.MinValue, sbyte.MinValue, byte.MinValue, new char[2] { 'c', 'b' });
+            Assert.IsTrue(true);
+        }
+
+        [TestMethod]
         public void TestAppend()
         {
             var sb = StringHelper.LiteStringBuilder.Create();
@@ -169,6 +244,8 @@ namespace LiteStringBuilder.Tests
             sb.Append(string.Empty);
             Assert.IsTrue(sb.Length == 0);
 
+            sb.Append((char[])null);
+            Assert.IsTrue(sb.Length == 0);
 
             sb.Clear();
             Assert.IsTrue(sb.Length == 0);
@@ -221,6 +298,10 @@ namespace LiteStringBuilder.Tests
             sb.Clear();
             sb.Append(1000);
             Assert.AreEqual(sb.ToString(), "1000");
+
+            sb.Clear();
+            sb.Append(-1000);
+            Assert.AreEqual(sb.ToString(), "-1000");
 
             sb.Clear();
             sb.Append((decimal)0);
@@ -338,6 +419,9 @@ namespace LiteStringBuilder.Tests
             sb.Replace("one", "1");
             Assert.AreEqual(sb.ToString(), "14BCabc14BCdefg14BC");
 
+            sb.Replace("1", null);
+            Assert.AreEqual(sb.ToString(), "4BCabc4BCdefg4BC");
+
 
             sb.Clear();
             Assert.AreEqual(sb.Replace(null,"HI"), sb);
@@ -414,27 +498,6 @@ namespace LiteStringBuilder.Tests
                 Assert.AreEqual(a, b);
             }
          
-        }
-
-
-        [TestMethod]
-        public void TestArrayPool()
-        {
-            var pool = new SimpleArrayPool<int>();
-            var list = new List<int[]>();
-            for(var i = 0; i < 1000; i++)
-            {
-                list.Add(pool.Rent(i));
-            }
-
-            foreach(var l in list)
-            {
-                pool.Return(l);
-            }
-
-            pool.Return(Array.Empty<int>());
-            pool.Rent(int.MaxValue);
-
         }
     }
 }

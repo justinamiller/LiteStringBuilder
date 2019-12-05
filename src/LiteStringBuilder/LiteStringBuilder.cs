@@ -9,6 +9,8 @@ using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 using System.Buffers;
 
+[assembly: InternalsVisibleTo("Benchmark")]
+[assembly: InternalsVisibleTo("LiteStringBuilder.Tests")]
 namespace StringHelper
 {
     ///<summary>
@@ -25,7 +27,7 @@ namespace StringHelper
         private readonly static char[] _charNumbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         private readonly static CultureInfo s_Culture = CultureInfo.CurrentCulture;
 
-        internal readonly static SimpleArrayPool<char> Pool_Instance = new SimpleArrayPool<char>();
+        internal readonly static ArrayPool<char> Pool_Instance = ArrayPool<char>.Shared;
 
 #pragma warning disable HAA0501 // Explicit new array type allocation
         private readonly static char[][] s_bool = new char[2][]
@@ -44,6 +46,26 @@ namespace StringHelper
             get
             {
                 return _bufferPos;
+            }
+        }
+
+        public char this[int index]
+        {
+            get
+            {
+                if (index > _bufferPos || 0>index)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+                return _buffer[index];
+            }
+            set
+            {
+                if (index > _bufferPos || 0 > index)
+                {
+                    throw new ArgumentOutOfRangeException("index");
+                }
+                _buffer[index] = value;
             }
         }
 
@@ -136,14 +158,14 @@ namespace StringHelper
             Append(str);
         }
 
-        ///<summary>Will allocate a little memory due to boxing</summary>
-        public void Set(params object[] str)
+        ///<summary>Clear values, and append new values. Will allocate a little memory due to boxing</summary>
+        public void Set(params object[] values)
         {
             Clear();
 
-            for (int i = 0; i < str.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
-                Append(str[i]);
+                Append(values[i]);
             }
         }
 
@@ -153,6 +175,108 @@ namespace StringHelper
         {
             _bufferPos = 0;
             return this;
+        }
+
+        ///<summary>Will allocate on the array creatation, and on boxing values</summary>
+        public LiteStringBuilder Append(params object[] values)
+        {
+            if (values != null)
+            {
+                int len = values.Length;
+                for(var i = 0; i < len; i++)
+                {
+                    this.Append<object>(values[i]);
+                }
+            }
+            return this;
+        }
+
+        ///<summary>Will allocate on the array creatation</summary>
+        public LiteStringBuilder Append<T>(params T[] values)
+        {
+
+            if (values != null)
+            {
+                //Type type = typeof(T);
+                //var value = (T)Convert.ChangeType(values[i], type);
+
+                int len = values.Length;
+                for (var i = 0; i < len; i++)
+                {
+                    Append(values[i]);
+                }
+            }
+            return this;
+        }
+
+        private void Append<T>(T value)
+        {
+            if(value == null)
+            {
+                //null no need to add
+                return;
+            }
+            if (value is string)
+            {
+                this.Append(value as string);
+            }
+            else if (value is char)
+            {
+                this.Append((char)(object)value);
+            }
+            else if (value is char[])
+            {
+                this.Append((char[])(object)value);
+            }
+            else if (value is int)
+            {
+                this.Append((int)(object)value);
+            }
+            else if (value is long)
+            {
+                this.Append((long)(object)value);
+            }
+            else if (value is bool)
+            {
+                this.Append((bool)(object)value);
+            }
+            else if (value is DateTime)
+            {
+                this.Append((DateTime)(object)value);
+            }
+            else if (value is decimal)
+            {
+                this.Append((decimal)(object)value);
+            }
+            else if (value is float)
+            {
+                this.Append((float)(object)value);
+            }
+            else if (value is double)
+            {
+                this.Append((double)(object)value);
+            }
+            else if (value is byte)
+            {
+                this.Append((byte)(object)value);
+            }
+            else if (value is sbyte)
+            {
+                this.Append((sbyte)(object)value);
+            }
+            else if (value is ulong)
+            {
+                this.Append((ulong)(object)value);
+            }
+            else if (value is uint)
+            {
+                this.Append((uint)(object)value);
+            }
+            else
+            {
+                //default handling is tostring()
+                this.Append(value.ToString()) ;
+            }
         }
 
         ///<summary>Append a string without memory allocation</summary>
@@ -288,14 +412,18 @@ namespace StringHelper
         ///<summary>Append an sbyte with some memory allocation</summary>
         public LiteStringBuilder Append(sbyte value)
         {
-            return InternalAppendSafe(value.ToString(s_Culture));
+            if (value < 0)
+            {
+                return Append((ulong)-((int)value), true);
+            }
+            return Append((ulong)value, false);
         }
 
 
         ///<summary>Append an byte with some memory allocation</summary>
         public LiteStringBuilder Append(byte value)
         {
-            return InternalAppendSafe(value.ToString(s_Culture));
+            return Append(value, false);
         }
 
 
@@ -311,6 +439,13 @@ namespace StringHelper
         {
             return Append(value, false);
         }
+
+        ///<summary>Append an int without memory allocation</summary>
+        public LiteStringBuilder Append(short value)
+        {
+            return Append((int)value);
+        }
+
 
         ///<summary>Append an int without memory allocation</summary>
         public LiteStringBuilder Append(int value)
