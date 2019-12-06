@@ -1,5 +1,6 @@
 # LiteStringBuilder
 [![NuGet Badge](https://buildstats.info/nuget/LiteStringBuilder)](https://www.nuget.org/packages/LiteStringBuilder/)
+
 An alternative to the System.Text.StringBuilder C# class.
 
 
