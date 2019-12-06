@@ -46,6 +46,21 @@ namespace LiteStringBuilder.Tests
 
             Assert.AreEqual(sb.Length, str.Length);
             Assert.AreEqual(sb.ToString().Length, sb.Length);
+
+
+            sb.Clear();
+            var singleByteString = "s";
+            var doubleByteString = "ß";
+            var quadByteString = "𝟘";
+
+            sb.Append(singleByteString);
+            Assert.AreEqual(sb.ToString(), singleByteString);
+
+            sb.Append(doubleByteString);
+            Assert.AreEqual(sb.ToString(), singleByteString+ doubleByteString);
+
+            sb.Append(quadByteString);
+            Assert.AreEqual(sb.ToString(), singleByteString + doubleByteString+ quadByteString);
         }
 
         [TestMethod]
@@ -230,7 +245,7 @@ namespace LiteStringBuilder.Tests
         public void TestAppendObjects()
         {
             var sb = StringHelper.LiteStringBuilder.Create();
-            sb.Append("Test", 'c', true, double.MaxValue, int.MaxValue, short.MaxValue, decimal.MaxValue, double.MaxValue, float.MaxValue, DateTime.MinValue, sbyte.MinValue, byte.MinValue, new char[2] { 'c', 'b' });
+            sb.Append("Test", 'c', true, double.MaxValue, long.MaxValue,ulong.MaxValue,uint.MaxValue,null, int.MaxValue, short.MaxValue, decimal.MaxValue, double.MaxValue, float.MaxValue, DateTime.MinValue, sbyte.MinValue, byte.MinValue, new char[2] { 'c', 'b' });
             Assert.IsTrue(true);
         }
 

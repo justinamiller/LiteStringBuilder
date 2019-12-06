@@ -285,54 +285,14 @@ namespace StringHelper
             int n = value?.Length ?? 0;
             if (n > 0)
             {
-                EnsureCapacity(n);
-                if (n <= 3)
-                {
-                    _buffer[_bufferPos] = value[0];
-                    if (n > 2)
-                    {
-                        _buffer[_bufferPos + 1] = value[1];
-                        _buffer[_bufferPos + 2] = value[2];
-                    }
-                    else if (n > 1)
-                    {
-                        _buffer[_bufferPos + 1] = value[1];
-                    }
-                }
-                else
-                {
-                    value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                }
+                //EnsureCapacity(n);
+                //value.AsSpan().TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
+                //_bufferPos += n;
 
-                _bufferPos += n;
+                InternalAppend(value.AsSpan(), n);
             }
             return this;
         }
-
-        ///<summary>Append a string without memory allocation</summary>
-        private LiteStringBuilder InternalAppendSafe(string value)
-        {
-            int n = value?.Length ?? 0;
-            if (n > 0)
-            {
-                EnsureCapacity(n);
-                int bytesSize = n * 2;
-                unsafe
-                {
-                    fixed (char* valuePtr = value)
-                    fixed (char* destPtr = &_buffer[_bufferPos])
-                    {
-                        System.Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
-                        //System.Buffer.MemoryCopy((byte*)valuePtr, (byte*)destPtr, bytesSize, bytesSize);
-                    }
-                }
-
-                _bufferPos += n;
-            }
-
-            return this;
-        }
-
 
         ///<summary>Generate a new line</summary>
         public LiteStringBuilder AppendLine()
@@ -385,12 +345,23 @@ namespace StringHelper
             int n = value?.Length ?? 0;
             if (n > 0)
             {
-                EnsureCapacity(n);
-                Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
-                _bufferPos += n;
+                //EnsureCapacity(n);
+                ////Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
+
+                //_bufferPos += n;
+
+                InternalAppend(new ReadOnlySpan<char>(value), n);
             }
 
             return this;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void InternalAppend(ReadOnlySpan<char> value,int length)
+        {
+            EnsureCapacity(length);
+            value.TryCopyTo(_buffer.AsSpan(_bufferPos, length));
+            _bufferPos += length;
         }
 
         ///<summary>Append an object.ToString(), allocate some memory</summary>
@@ -405,7 +376,7 @@ namespace StringHelper
         ///<summary>Append an datetime with small memory allocation</summary>
         public LiteStringBuilder Append(DateTime value)
         {
-            return InternalAppendSafe(value.ToString(s_Culture));
+            return Append(value.ToString(s_Culture));
         }
 
 
@@ -460,12 +431,12 @@ namespace StringHelper
 
         public LiteStringBuilder Append(float value)
         {
-            return InternalAppendSafe(value.ToString(s_Culture));
+            return Append(value.ToString(s_Culture));
         }
 
         public LiteStringBuilder Append(decimal value)
         {
-            return InternalAppendSafe(value.ToString(s_Culture));
+            return Append(value.ToString(s_Culture));
         }
 
 
@@ -516,7 +487,7 @@ namespace StringHelper
         ///<summary>Append a double without memory allocation.</summary>
         public LiteStringBuilder Append(double value)
         {
-            return InternalAppendSafe(value.ToString(s_Culture));
+            return Append(value.ToString(s_Culture));
         }
 
         #region OLDCODE
@@ -591,7 +562,7 @@ namespace StringHelper
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
-                InternalAppendSafe(value.ToString(s_Culture));
+                return Append(value.ToString(s_Culture));
             }
 
             EnsureCapacity(45); // Check we have enough buffer allocated to handle most double number
@@ -702,7 +673,9 @@ namespace StringHelper
                         //first replacement target
                         replacementChars = Pool_Instance.Rent(size);
                         //copy first set of char that did not match.
-                        Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
+                      //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
+                     //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
+                        _buffer.AsSpan(0, i).TryCopyTo(replacementChars.AsSpan(0,i));
                         index = i;
                     }
 
@@ -723,8 +696,11 @@ namespace StringHelper
             if (replaceIndex > 0)
             {
                 // Copy back the new string into _chars
-                EnsureCapacity(index - _bufferPos);
-                Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
+                EnsureCapacity(index);
+             //   Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
+
+                replacementChars.AsSpan(0, index).TryCopyTo(_buffer.AsSpan());
+
                 Pool_Instance.Return(replacementChars);
                 _bufferPos = index;
             }
@@ -742,13 +718,14 @@ namespace StringHelper
             if (pos + appendLength > capacity)
             {
                 //capacity = capacity + appendLength + 1;
-                capacity = (int)((capacity + appendLength) * 1.5);
+                //capacity = (int)((capacity + appendLength) * 1.5);
+                capacity = capacity + appendLength+DefaultCapacity;
 
                 char[] newBuffer = Pool_Instance.Rent(capacity);
                 if (pos > 0)
                 {
-                    //copy data over as bytes
-                    Buffer.BlockCopy(_buffer, 0, newBuffer, 0, pos * 2);
+                    //copy data
+                    _buffer.AsSpan(0, _bufferPos).TryCopyTo(newBuffer.AsSpan());
                     Pool_Instance.Return(_buffer);
                 }
 
@@ -756,6 +733,7 @@ namespace StringHelper
                 _charsCapacity = capacity;
             }
         }
+
         public override int GetHashCode()
         {
             unchecked
