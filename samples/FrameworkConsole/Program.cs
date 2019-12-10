@@ -48,10 +48,7 @@ namespace FrameworkConsole
 
         static void Main(string[] args)
         {
-            System.Threading.Thread.Sleep(1000);
- 
-
-            for(var i = 0; i < 10000; i++)
+            for (var i = 0; i < 10000; i++)
             {
                 LargeArray_StringBuilder();
                 LargeArray_LiteStringBuilder();

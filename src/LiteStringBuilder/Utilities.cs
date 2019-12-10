@@ -35,5 +35,37 @@ namespace StringHelper
             return 20;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int GetPaddedCapacity(int bufferSize)
+        {
+            uint num1 = (uint)(bufferSize - 1) >> 4;
+            int num2 = 0;
+            if (num1 > ushort.MaxValue)
+            {
+                num1 >>= 16;
+                num2 = 16;
+            }
+            if (num1 > byte.MaxValue)
+            {
+                num1 >>= 8;
+                num2 += 8;
+            }
+            if (num1 > 15U)
+            {
+                num1 >>= 4;
+                num2 += 4;
+            }
+            if (num1 > 3U)
+            {
+                num1 >>= 2;
+                num2 += 2;
+            }
+            if (num1 > 1U)
+            {
+                num1 >>= 1;
+                ++num2;
+            }
+            return 16 << (num2 + (int)num1);
+        }
     }
 }
