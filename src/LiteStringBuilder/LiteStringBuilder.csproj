@@ -1,7 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <!--netcoreapp1.0
+  netcoreapp1.1
+  netcoreapp2.0
+  netcoreapp2.1
+  netcoreapp2.2
+  netcoreapp3.0
+  netcoreapp3.1-->
   <PropertyGroup>
-    <TargetFrameworks>net46;net47;netstandard1.3;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>net46;net47;netstandard2.0;netstandard2.1;netcoreapp2.0;netcoreapp3.0;netcoreapp1.1;</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Justin Miller</Authors>
     <Company>Justin Miller</Company>
@@ -31,5 +37,4 @@
   <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.5.3" />
   </ItemGroup>
-
 </Project>
