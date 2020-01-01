@@ -188,6 +188,15 @@ namespace Benchmark.Core
             m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4);
             return m_strCustom.ToString();
         }
+
+        [Benchmark]
+        public string Large_LiteStringBuilder11()
+        {
+            var m_strCustom = new LiteStringBuilder11(1);
+            // m_strCustom.Clear();
+            m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4);
+            return m_strCustom.ToString();
+        }
         #endregion
 
         //#region PrimativeTypes

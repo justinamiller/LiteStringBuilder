@@ -53,7 +53,7 @@ namespace StringHelper
         {
             get
             {
-                return _bufferPos;
+                return this.TotalLength;
             }
         }
 
@@ -905,9 +905,9 @@ namespace StringHelper
                 int hash = 0;
                 for (var i = 0; i < _bufferPos; i++)
                 {
-                    hash += _buffer[i].GetHashCode();
+                    hash += _buffer[i];
                 }
-                return 31 * hash + _bufferPos;
+                return 31 * hash + this.TotalLength;
             }
         }
     }
