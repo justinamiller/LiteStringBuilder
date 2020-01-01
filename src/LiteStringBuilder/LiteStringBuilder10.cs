@@ -97,7 +97,6 @@ namespace StringHelper
 #if NETCOREAPP3_0 || NETSTANDARD2_1
         private static readonly SpanAction<char, ValueTuple<Bucket[],int,char[],int>> StringCreationAction = (span, ctx) =>
         {
-
             var buckets = ctx.Item1;
             var bucketLength = ctx.Item2;
             var buffer = ctx.Item3;
@@ -108,8 +107,7 @@ namespace StringHelper
             for (var i = 0; i < bucketLength; i++)
             {
                 var bucket = buckets[i];
-               
-                bucket.Buffer.AsSpan().TryCopyTo(position>0 ? span.Slice(position) : span);
+                bucket.Span.TryCopyTo(position > 0 ? span.Slice(position) : span);
                 position += bucket.Length;
             }
 
@@ -127,11 +125,9 @@ namespace StringHelper
             {
                 return string.Empty;
             }
-
 #if NETCOREAPP3_0 || NETSTANDARD2_1
-            return string.Create(totalLength, (_buckets,_bucketIndex, _buffer,_bufferPos), StringCreationAction);
-#endif
-
+            return string.Create(totalLength, (_buckets, _bucketIndex, _buffer, _bufferPos), StringCreationAction);
+#else
             int pos = _bufferPos;
             int copyIndex = 0;
 
@@ -164,6 +160,7 @@ namespace StringHelper
                 }
             }
             return allocString;
+#endif
         }
 
         public override bool Equals(object obj)
@@ -174,28 +171,25 @@ namespace StringHelper
         {
             // Check for null
             if (other is null)
+            {
                 return false;
+            }
+
 
             // Check for same reference
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+           
 
             // Check for same Id and same Values
-            if (other.Length != this.Length)
+            if (other.TotalLength != this.TotalLength)
             {
                 return false;
             }
 
-            for (var i = 0; i < _bufferPos; i++)
-            {
-                if (!this._buffer[i].Equals(other._buffer[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-
+            return this.ToString() == other.ToString();
         }
 
         // Set methods: 
@@ -339,19 +333,13 @@ namespace StringHelper
                 int length = value.Length;
                 if (length > 0)
                 {
-
                     EnsureCapacity(length);
                     int pos = _bufferPos;
                     var buffer = _buffer;
-                    value.AsSpan().TryCopyTo(pos > 0 ? new Span<char>(buffer, pos, buffer.Length - pos) : buffer.AsSpan());
-
-
-
+                    value.AsSpan().TryCopyTo(pos > 0 ? new Span<char>(buffer, pos, buffer.Length - pos) : new Span<char>(buffer));
                     // value.AsSpan().CopyTo(pos > 0 ? _buffer.AsSpan().Slice(pos) : _buffer.AsSpan());
 
-                    _bufferPos = length + pos;
-
-                    //InternalAppend(value.AsSpan(), n);
+                    _bufferPos += length;
                 }
             }
             return this;
@@ -847,7 +835,12 @@ namespace StringHelper
             return this;
         }
 
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BufferCopy(char[] source,  char[] dst, int length)
+        {
+        //  Buffer.BlockCopy(source, 0, dst, length * 2, length * 2);
+            new Span<char>(source, 0, length).TryCopyTo(new Span<char>(dst,0,length));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
@@ -863,15 +856,18 @@ namespace StringHelper
                 char[] newBuffer = new char[newCapacity];
                 if (pos > 0)
                 {
-                  //set size
-                   EnsureBucketCapacity();
-                
                     if (pos != currentCapacity)
                     {
+                        //trim
                         char[] newItems = new char[pos];
-                         Buffer.BlockCopy(newItems, 0, buffer, pos * 2, pos * 2);
-                        buffer = newItems;
+                       // Buffer.BlockCopy(buffer, 0, newItems, 0, pos * 2);
+                       new Span<char>(buffer, 0, pos).TryCopyTo(new Span<char>(newItems));
+                      buffer = newItems;
                     }
+
+                    //set size
+                    EnsureBucketCapacity();
+
                     //copy data
                     _buckets[_bucketIndex++] = new Bucket(buffer, pos, _totalLength);
                     _totalLength += pos;
@@ -889,12 +885,14 @@ namespace StringHelper
             int index = _bucketIndex;
             if (len== index)
             {
-                int newCapacity = len + 4;
-
-                Bucket[] newItems = new Bucket[newCapacity];
+                Bucket[] newItems = new Bucket[len + 4];
                 if (index > 0)
                 {
-                    Array.Copy(_buckets, 0, newItems, 0, index);
+#if NETCOREAPP3_0 || NETCOREAPP1_0 || NETCOREAPP1_1 || NETCOREAPP2_0
+                    new Span<Bucket>(_buckets, 0, index).CopyTo(new Span<Bucket>(newItems));
+#else
+                   Array.Copy(_buckets, 0, newItems, 0, index);
+#endif
                 }
                 _buckets = newItems;
             }

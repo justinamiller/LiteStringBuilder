@@ -25,6 +25,14 @@ namespace StringHelper
             this.Offset = offset;
         }
 
+        public Span<char> Span
+        {
+            get
+            {
+                return new Span<char>(this.Buffer, 0, this.Length);
+            }
+        }
+
         public override string ToString()
         {
            return new Span<char>(this.Buffer, 0, this.Length).ToString();
@@ -40,13 +48,11 @@ namespace StringHelper
         }
         public bool Equals(Bucket other)
         {
-
             // Check for same reference
             if (ReferenceEquals(this, other))
                 return true;
 
-            // Check for same Id and same Values
-            if (other.Length != this.Length)
+            if (this.Offset != other.Offset || other.Length != this.Length)
             {
                 return false;
             }
@@ -72,7 +78,7 @@ namespace StringHelper
                 {
                     hash += Buffer[i].GetHashCode();
                 }
-                return 31 * hash + this.Length;
+                return 31 * hash + this.Length + this.Offset;
             }
         }
     }
