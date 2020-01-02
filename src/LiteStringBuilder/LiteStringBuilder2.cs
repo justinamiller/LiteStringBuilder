@@ -339,7 +339,7 @@ namespace StringHelper
                         fixed (char* valuePtr = value)
                         fixed (char* destPtr = &_buffer[pos])
                         {
-                            Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
+                            Buffer.MemoryCopy((byte*)valuePtr, (byte*)destPtr, bytesSize, bytesSize);
                         }
                     }
 
@@ -774,12 +774,6 @@ namespace StringHelper
             int appendSize = pos + appendLength;
             if (appendSize > buffer.Length)
             {
-                //capacity = capacity + appendLength + 1;
-                //capacity = (int)((capacity + appendLength) * 1.5);
-                //    capacity = Utilities.GetPaddedCapacity( capacity + appendLength);
-                //  int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
-            //    int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
-
                 char[] newBuffer = Pool_Instance.Rent(appendSize);
            
                 if (pos > 0)

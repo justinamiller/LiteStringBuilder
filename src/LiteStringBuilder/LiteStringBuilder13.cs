@@ -922,7 +922,7 @@ namespace StringHelper
             {
                 int totalLength = this.Length;
                 int minCalc = (totalLength <= 8000) ? totalLength : 8000;
-                int newCapacity = (appendLength >= minCalc) ? appendLength : minCalc; 
+                int newCapacity = (appendLength > minCalc) ? appendLength : minCalc;
                 if (pos > 0)
                 {
                     //set size
