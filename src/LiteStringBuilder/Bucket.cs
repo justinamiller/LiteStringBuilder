@@ -66,7 +66,6 @@ namespace StringHelper
             }
 
             return true;
-
         }
 
         public override int GetHashCode()
