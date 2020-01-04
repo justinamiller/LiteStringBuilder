@@ -11,11 +11,13 @@ namespace StringHelper
         public readonly char[] Buffer;
         public readonly int Length;
         public readonly int Offset;
+        public readonly int OffsetLength;
         public Bucket(char[] buffer, int length, int offset)
         {
             this.Buffer = buffer;
             this.Length = length;
             this.Offset = offset;
+            this.OffsetLength = length + offset;
         }
 
         public Bucket(Bucket bucket, int offset)
@@ -23,6 +25,8 @@ namespace StringHelper
             this.Buffer = bucket.Buffer;
             this.Length = bucket.Length;
             this.Offset = offset;
+
+            this.OffsetLength = Length + offset;
         }
 
         public Span<char> Span
