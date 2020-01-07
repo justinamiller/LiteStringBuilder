@@ -858,7 +858,8 @@ namespace StringHelper
                     EnsureBucketCapacity();
 
                     //copy data
-                    _buckets[_bucketIndex++] = new Bucket(buffer, pos, _totalOffset);
+                    _buckets[_bucketIndex] = new Bucket(buffer, pos, _totalOffset,_bucketIndex);
+                    _bucketIndex += 1;
                     _totalOffset += pos;
                     _bufferPos = 0;
                 }

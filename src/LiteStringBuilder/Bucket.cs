@@ -12,12 +12,14 @@ namespace StringHelper
         public readonly int Length;
         public readonly int Offset;
         public readonly int OffsetLength;
-        public Bucket(char[] buffer, int length, int offset)
+        public readonly int Index;
+        public Bucket(char[] buffer, int length, int offset,int index)
         {
             this.Buffer = buffer;
             this.Length = length;
             this.Offset = offset;
             this.OffsetLength = length + offset;
+            this.Index = index;
         }
 
         public Bucket(Bucket bucket, int offset)
@@ -25,6 +27,7 @@ namespace StringHelper
             this.Buffer = bucket.Buffer;
             this.Length = bucket.Length;
             this.Offset = offset;
+            this.Index = 0;
 
             this.OffsetLength = Length + offset;
         }
@@ -56,7 +59,7 @@ namespace StringHelper
             if (ReferenceEquals(this, other))
                 return true;
 
-            if (this.Offset != other.Offset || other.Length != this.Length)
+            if (this.Offset != other.Offset || other.Length != this.Length || this.Index!=other.Index)
             {
                 return false;
             }

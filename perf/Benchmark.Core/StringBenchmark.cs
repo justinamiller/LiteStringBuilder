@@ -96,19 +96,27 @@ namespace Benchmark.Core
         //    return m_strBuilder.ToString();
         //}
 
-        [Benchmark]
-        public string LiteStringBuilder13_replaceSLOW()
-        {
-            var m_strBuilder = new LiteStringBuilder13(1);
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_Slow("373", "5428").Replace_Slow("St Paul", "HOT");
-            return m_strBuilder.ToString();
-        }
+        //[Benchmark]
+        //public string LiteStringBuilder13_replaceSLOW()
+        //{
+        //    var m_strBuilder = new LiteStringBuilder13(1);
+        //    m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_Slow("373", "5428").Replace_Slow("St Paul", "HOT");
+        //    return m_strBuilder.ToString();
+        //}
 
         [Benchmark]
         public string LiteStringBuilder13_Replace_Try()
         {
             var m_strBuilder = new LiteStringBuilder13(1);
             m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_Try("373", "5428").Replace_Try("St Paul", "HOT");
+            return m_strBuilder.ToString();
+        }
+
+        [Benchmark]
+        public string LiteStringBuilder13_Replace_TrySkip()
+        {
+            var m_strBuilder = new LiteStringBuilder13(1);
+            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_TrySkip("373", "5428").Replace_TrySkip("St Paul", "HOT");
             return m_strBuilder.ToString();
         }
 
@@ -120,13 +128,13 @@ namespace Benchmark.Core
         //    return m_strBuilder.ToString();
         //}
 
-        [Benchmark]
-        public string LiteStringBuilder13_Replace_Trycache()
-        {
-            var m_strBuilder = new LiteStringBuilder13(1);
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_TryCache("373", "5428").Replace_TryCache("St Paul", "HOT");
-            return m_strBuilder.ToString();
-        }
+        //[Benchmark]
+        //public string LiteStringBuilder13_Replace_Trycache()
+        //{
+        //    var m_strBuilder = new LiteStringBuilder13(1);
+        //    m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_TryCache("373", "5428").Replace_TryCache("St Paul", "HOT");
+        //    return m_strBuilder.ToString();
+        //}
 
         [Benchmark]
         public string LiteStringBuilder13_Replace_Trycache2()
@@ -144,13 +152,13 @@ namespace Benchmark.Core
             return m_strBuilder.ToString();
         }
 
-        [Benchmark]
-        public string LiteStringBuilder13_Replace_Replace_TryCacheRework()
-        {
-            var m_strBuilder = new LiteStringBuilder13(1);
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_TryCacheRework("373", "5428").Replace_TryCacheRework("St Paul", "HOT");
-            return m_strBuilder.ToString();
-        }
+        //[Benchmark]
+        //public string LiteStringBuilder13_Replace_Replace_TryCacheRework()
+        //{
+        //    var m_strBuilder = new LiteStringBuilder13(1);
+        //    m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace_TryCacheRework("373", "5428").Replace_TryCacheRework("St Paul", "HOT");
+        //    return m_strBuilder.ToString();
+        //}
         
 
 
