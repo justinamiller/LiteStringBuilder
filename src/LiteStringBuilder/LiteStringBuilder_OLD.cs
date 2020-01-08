@@ -121,8 +121,6 @@ namespace StringHelper
                     return new string(sourcePtr, 0, _bufferPos);
                 }
             }
-
-          //  return new string(_buffer, 0, _bufferPos);
         }
 
         public override bool Equals(object obj)

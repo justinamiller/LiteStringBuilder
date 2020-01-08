@@ -65,7 +65,13 @@ namespace Benchmark.Core
             return m_strBuilder.ToString();
         }
 
-
+        [Benchmark]
+        public string LiteStringBuilder_refactor()
+        {
+            var m_strBuilder = new LiteStringBuilder_Refactor(1);
+            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
+            return m_strBuilder.ToString();
+        }
 
         #endregion
 
@@ -127,6 +133,14 @@ namespace Benchmark.Core
             return m_strCustom.ToString();
         }
 
+        [Benchmark]
+        public string Large_LiteStringBuilder_Refactor()
+        {
+            var m_strCustom = new LiteStringBuilder_Refactor(1);
+            // m_strCustom.Clear();
+            m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4);
+            return m_strCustom.ToString();
+        }
 
         #endregion
 
@@ -183,6 +197,15 @@ namespace Benchmark.Core
             return m_strCustom.ToString();
         }
 
+        [Benchmark]
+        public string Primative_LiteStringBuilder_Refactor()
+        {
+            var m_strCustom = new LiteStringBuilder_Refactor(16);
+            // m_strCustom.Clear();
+            m_strCustom.Append(char.MaxValue).Append(Int16.MaxValue).Append(Int32.MaxValue).Append(Int64.MaxValue).Append(DateTime.MaxValue).Append(double.MaxValue).Append(float.MaxValue).Append(true).Append(byte.MaxValue).Append(sbyte.MaxValue).Append("HELLOWORLD");
+            return m_strCustom.ToString();
+        }
+
         #endregion
 
         #region BIGArray
@@ -232,6 +255,16 @@ namespace Benchmark.Core
         public string LargeArray_LiteStringBuilder_Old()
         {
             var m_strCustom = new LiteStringBuilder_OLD(1);
+            // m_strCustom.Clear();
+            m_strCustom.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
+            return m_strCustom.ToString();
+        }
+
+
+        [Benchmark]
+        public string LargeArray_LiteStringBuilder_Refactor()
+        {
+            var m_strCustom = new LiteStringBuilder_Refactor(1);
             // m_strCustom.Clear();
             m_strCustom.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
             return m_strCustom.ToString();

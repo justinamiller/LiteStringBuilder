@@ -10,25 +10,24 @@ using System.Diagnostics.CodeAnalysis;
 using System.Buffers;
 
 [assembly: InternalsVisibleTo("Benchmark")]
-[assembly: InternalsVisibleTo("LiteStringBuilder.Tests")]
+[assembly: InternalsVisibleTo("LiteStringBuilder_Refactor.Tests")]
 namespace StringHelper
 {
     ///<summary>
     /// Mutable String class, optimized for speed and memory allocations while retrieving the final result as a string.
     /// Similar use than StringBuilder, but avoid a lot of allocations done by StringBuilder (conversion of int and float to string, frequent capacity change, etc.)
     ///</summary>
-    public class LiteStringBuilder
+    public class LiteStringBuilder_Refactor
     {
         ///<summary>Working mutable string</summary>
         private char[] _buffer = null;
         private int _bufferPos = 0;
+        private int _charsCapacity = 0;
         private const int DefaultCapacity = 16;
         private readonly static char[] _charNumbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         private readonly static CultureInfo s_Culture = CultureInfo.CurrentCulture;
-        private int _totalOffset = 0;
+        internal readonly static ArrayPool<char> Pool_Instance = ArrayPool<char>.Shared;
 
-        private Bucket[] _buckets = Array.Empty<Bucket>();
-        private int _bucketIndex = 0;
 #pragma warning disable HAA0501 // Explicit new array type allocation
         private readonly static char[][] s_bool = new char[2][]
 #pragma warning restore HAA0501 // Explicit new array type allocation
@@ -43,117 +42,80 @@ namespace StringHelper
         /// </summary>
         public int Length
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return _totalOffset + _bufferPos;
+                return _bufferPos;
             }
         }
-
-
-        internal int Capacity
-        {
-            get
-            {
-                int capacity = 0;
-                for (var i = 0; i < _buckets.Length; i++)
-                {
-                    capacity += _buckets[i].Buffer?.Length ?? 0;
-                }
-
-                capacity += _buffer.Length;
-
-                return capacity;
-            }
-        }
-
 
         public char this[int index]
         {
             get
             {
-                if (index > this.Length || 0 > index)
+                if (index > _bufferPos || 0 > index)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+                return _buffer[index];
+            }
+            set
+            {
+                if (index > _bufferPos || 0 > index)
                 {
                     throw new ArgumentOutOfRangeException("index");
                 }
-                var bucket = FindBucketForIndex(index);
-                return bucket.Buffer[index - bucket.Offset];
+                _buffer[index] = value;
             }
-            //set
-            //{
-            //    if (index > _bufferPos || 0 > index)
-            //    {
-            //        throw new ArgumentOutOfRangeException("index");
-            //    }
-
-            //    var bucket = FindBucketForIndex(index);
-            //    if (bucket.Index == -1)
-            //    {
-            //        _buffer[]
-            //    }
-            //    bucket.Span.Slice(index - bucket.Offset).CopyTo('a');
-
-            ////    _buffer[index] = value;
-            //}
         }
 
-
         /// <summary>
-        /// Get a new instance of LiteStringBuilder13
+        /// Get a new instance of LiteStringBuilder_Refactor
         /// </summary>
         /// <param name="initialCapacity"></param>
         /// <returns></returns>
-        public static LiteStringBuilder Create(int initialCapacity = DefaultCapacity)
+        public static LiteStringBuilder_Refactor Create(int initialCapacity = DefaultCapacity)
         {
-            return new LiteStringBuilder(initialCapacity);
+            return new LiteStringBuilder_Refactor(initialCapacity);
         }
 
-        public LiteStringBuilder(int initialCapacity = DefaultCapacity)
+        public LiteStringBuilder_Refactor(int initialCapacity = DefaultCapacity)
         {
-            _buffer = new char[initialCapacity > 0 ? initialCapacity : DefaultCapacity];//Pool_Instance.Rent(capacity);
+            int capacity = initialCapacity > 0 ? initialCapacity : DefaultCapacity;
+            _buffer = Pool_Instance.Rent(capacity);
+            _charsCapacity = _buffer.Length;
         }
 
-        public LiteStringBuilder(string value)
+        public LiteStringBuilder_Refactor(string value)
         {
-
             if (value != null)
             {
                 int capacity = value.Length > 0 ? value.Length : DefaultCapacity;
-                _buffer = new char[capacity];
+                _buffer = Pool_Instance.Rent(capacity);
+                _charsCapacity = _buffer.Length;
                 this.Append(value);
             }
             else
             {
-                _buffer = new char[DefaultCapacity];
+                _buffer = Pool_Instance.Rent(DefaultCapacity);
+                _charsCapacity = _buffer.Length;
             }
         }
 
 
         public bool IsEmpty()
         {
-            return this.Length == 0;
+            return _bufferPos == 0;
         }
 
 #if NETCOREAPP3_0 || NETSTANDARD2_1
-        private static readonly SpanAction<char, ValueTuple<Bucket[], int, char[], int>> StringCreationAction = (span, ctx) =>
+        private static readonly SpanAction<char, ValueTuple<char[], int>> StringCreationAction = (span, ctx) =>
         {
-            var buckets = ctx.Item1;
-            var bucketLength = ctx.Item2;
-            var buffer = ctx.Item3;
-            var pos = ctx.Item4;
-
-            int position = 0;
-
-            for (var i = 0; i < bucketLength; i++)
-            {
-                var bucket = buckets[i];
-                bucket.Span.TryCopyTo(position > 0 ? span.Slice(position) : span);
-                position += bucket.Length;
-            }
+            var buffer = ctx.Item1;
+            var pos = ctx.Item2;
 
             if (pos > 0)
             {
-                new Span<char>(buffer, 0, pos).TryCopyTo(position > 0 ? span.Slice(position) : span);
+                new Span<char>(buffer, 0, pos).TryCopyTo(span);
             }
         };
 #else
@@ -163,7 +125,7 @@ namespace StringHelper
         }
 
         private readonly static Func<int, string> FastAllocateString;
-        static LiteStringBuilder()
+        static LiteStringBuilder_Refactor()
         {
             MethodInfo fasMethod = typeof(string).GetMethod("FastAllocateString", BindingFlags.NonPublic | BindingFlags.Static);
             if (fasMethod is null)
@@ -184,11 +146,9 @@ namespace StringHelper
             }
 
 #if NETCOREAPP3_0 || NETSTANDARD2_1
-            return string.Create(totalLength, (_buckets, _bucketIndex, _buffer, _bufferPos), StringCreationAction);
+            return string.Create(totalLength, (_buffer, _bufferPos), StringCreationAction);
 #else
             int pos = _bufferPos;
-            int bucketLength = _bucketIndex;
-            var buckets = _buckets;
             int size;
 
             string allocString = FastAllocateString(totalLength);
@@ -198,17 +158,6 @@ namespace StringHelper
                 fixed (char* destPtr = allocString)
                 {
                     var ptr = (byte*)&destPtr[0];
-                    for (var i = 0; i < bucketLength; i++)
-                    {
-                        var buffer = buckets[i];
-                        size = buffer.Length * 2;
-                        fixed (char* sourcePtr = &buffer.Buffer[0])
-                        {
-                            Buffer.MemoryCopy((byte*)sourcePtr, ptr, size, size);
-                        }
-                        ptr += size;
-                    }
-
                     if (pos > 0)
                     {
                         size = pos * 2;
@@ -225,31 +174,34 @@ namespace StringHelper
 
         public override bool Equals(object obj)
         {
-            return Equals(obj as LiteStringBuilder);
+            return Equals(obj as LiteStringBuilder_Refactor);
         }
-        public bool Equals(LiteStringBuilder other)
+        public bool Equals(LiteStringBuilder_Refactor other)
         {
             // Check for null
             if (other is null)
-            {
                 return false;
-            }
-
 
             // Check for same reference
             if (ReferenceEquals(this, other))
-            {
                 return true;
-            }
-
 
             // Check for same Id and same Values
-            if (other.Length != this.Length || other.Capacity != this.Capacity)
+            if (other.Length != this.Length)
             {
                 return false;
             }
 
-            return this.ToString() == other.ToString();
+            for (var i = 0; i < _bufferPos; i++)
+            {
+                if (!this._buffer[i].Equals(other._buffer[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+
         }
 
         // Set methods: 
@@ -275,17 +227,14 @@ namespace StringHelper
 
 
         ///<summary>Reset the string to empty</summary>
-        public LiteStringBuilder Clear()
+        public LiteStringBuilder_Refactor Clear()
         {
-            _totalOffset = 0;
-            _buckets = Array.Empty<Bucket>();
-            _bucketIndex = 0;
             _bufferPos = 0;
             return this;
         }
 
         ///<summary>Will allocate on the array creatation, and on boxing values</summary>
-        public LiteStringBuilder Append(params object[] values)
+        public LiteStringBuilder_Refactor Append(params object[] values)
         {
             if (values != null)
             {
@@ -299,7 +248,7 @@ namespace StringHelper
         }
 
         ///<summary>Will allocate on the array creatation</summary>
-        public LiteStringBuilder Append<T>(params T[] values)
+        public LiteStringBuilder_Refactor Append<T>(params T[] values)
         {
 
             if (values != null)
@@ -387,53 +336,40 @@ namespace StringHelper
         }
 
         ///<summary>Append a string without memory allocation</summary>
-        public LiteStringBuilder Append(string value)
+        public LiteStringBuilder_Refactor Append(string value)
         {
-            if (value != null)
+            int length = value?.Length ?? 0;
+            if (length > 0)
             {
-                int length = value.Length;
-                if (length > 0)
-                {
-                    EnsureCapacity(length);
-                    int pos = _bufferPos;
-                    int bytesSize = length * 2;
-                    unsafe
-                    {
-                        fixed (char* valuePtr = value)
-                        fixed (char* destPtr = &_buffer[pos])
-                        {
-                            Buffer.MemoryCopy(valuePtr, destPtr, bytesSize, bytesSize);
-                        }
-                    }
-
-                    //    value.AsSpan().TryCopyTo(pos > 0 ? new Span<char>(buffer, pos, buffer.Length - pos) : new Span<char>(buffer));
-
-                    _bufferPos += length;
-                }
+                EnsureCapacity(length);
+                int pos = _bufferPos;
+                value.AsSpan().TryCopyTo(new Span<char>(_buffer, pos, length));
+                _bufferPos = pos + length;
             }
             return this;
         }
 
         ///<summary>Generate a new line</summary>
-        public LiteStringBuilder AppendLine()
+        public LiteStringBuilder_Refactor AppendLine()
         {
             return Append(Environment.NewLine);
         }
 
         ///<summary>Append a string and new line without memory allocation</summary>
-        public LiteStringBuilder AppendLine(string value)
+        public LiteStringBuilder_Refactor AppendLine(string value)
         {
             Append(value);
             return Append(Environment.NewLine);
         }
 
         ///<summary>Append a char without memory allocation</summary>
-        public LiteStringBuilder Append(char value)
+        public LiteStringBuilder_Refactor Append(char value)
         {
-            if (_bufferPos == this._buffer.Length)
+            if (_bufferPos >= _charsCapacity)
             {
                 EnsureCapacity(1);
             }
+
 
             _buffer[_bufferPos++] = value;
             return this;
@@ -443,7 +379,7 @@ namespace StringHelper
 
 
         ///<summary>Append a bool without memory allocation</summary>
-        public LiteStringBuilder Append(bool value)
+        public LiteStringBuilder_Refactor Append(bool value)
         {
             if (value)
             {
@@ -459,17 +395,21 @@ namespace StringHelper
 
 
         ///<summary>Append a char[] without memory allocation</summary>
-        public LiteStringBuilder Append(char[] value)
+        public LiteStringBuilder_Refactor Append(char[] value)
         {
             if (value != null)
             {
-                int length = value.Length;
-                if (length > 0)
+                int n = value.Length;
+                if (n > 0)
                 {
-                    EnsureCapacity(length);
-                    // new Span<char>(value).TryCopyTo(new Span<char>(_buffer, _bufferPos, n));
-                    Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, length * 2);
-                    _bufferPos += length;
+                    //EnsureCapacity(n);
+                    ////Buffer.BlockCopy(value, 0, _buffer, _bufferPos * 2, n * 2);
+
+                    //_bufferPos += n;
+
+                    EnsureCapacity(n);
+                    new Span<char>(value).TryCopyTo(new Span<char>(_buffer, _bufferPos, n));
+                    _bufferPos += n;
                 }
             }
 
@@ -479,7 +419,7 @@ namespace StringHelper
 
 
         ///<summary>Append an object.ToString(), allocate some memory</summary>
-        public LiteStringBuilder Append(object value)
+        public LiteStringBuilder_Refactor Append(object value)
         {
             if (value is null)
                 return this;
@@ -488,14 +428,14 @@ namespace StringHelper
         }
 
         ///<summary>Append an datetime with small memory allocation</summary>
-        public LiteStringBuilder Append(DateTime value)
+        public LiteStringBuilder_Refactor Append(DateTime value)
         {
             return Append(value.ToString(s_Culture));
         }
 
 
         ///<summary>Append an sbyte with some memory allocation</summary>
-        public LiteStringBuilder Append(sbyte value)
+        public LiteStringBuilder_Refactor Append(sbyte value)
         {
             if (value < 0)
             {
@@ -506,7 +446,7 @@ namespace StringHelper
 
 
         ///<summary>Append an byte with some memory allocation</summary>
-        public LiteStringBuilder Append(byte value)
+        public LiteStringBuilder_Refactor Append(byte value)
         {
             return Append(value, false);
         }
@@ -514,26 +454,26 @@ namespace StringHelper
 
 
         ///<summary>Append an uint without memory allocation</summary>
-        public LiteStringBuilder Append(uint value)
+        public LiteStringBuilder_Refactor Append(uint value)
         {
             return Append((ulong)value, false);
         }
 
         ///<summary>Append an ulong without memory allocation</summary>
-        public LiteStringBuilder Append(ulong value)
+        public LiteStringBuilder_Refactor Append(ulong value)
         {
             return Append(value, false);
         }
 
         ///<summary>Append an int without memory allocation</summary>
-        public LiteStringBuilder Append(short value)
+        public LiteStringBuilder_Refactor Append(short value)
         {
             return Append((int)value);
         }
 
 
         ///<summary>Append an int without memory allocation</summary>
-        public LiteStringBuilder Append(int value)
+        public LiteStringBuilder_Refactor Append(int value)
         {
             bool isNegative = value < 0;
             if (isNegative)
@@ -543,18 +483,18 @@ namespace StringHelper
             return Append((ulong)value, isNegative);
         }
 
-        public LiteStringBuilder Append(float value)
+        public LiteStringBuilder_Refactor Append(float value)
         {
             return Append(value.ToString(s_Culture));
         }
 
-        public LiteStringBuilder Append(decimal value)
+        public LiteStringBuilder_Refactor Append(decimal value)
         {
             return Append(value.ToString(s_Culture));
         }
 
 
-        public LiteStringBuilder Append(long value)
+        public LiteStringBuilder_Refactor Append(long value)
         {
             bool isNegative = value < 0;
             if (isNegative)
@@ -566,7 +506,7 @@ namespace StringHelper
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private LiteStringBuilder Append(ulong value, bool isNegative)
+        private LiteStringBuilder_Refactor Append(ulong value, bool isNegative)
         {
             // Allocate enough memory to handle any ulong number
             int length = Utilities.GetIntLength(value);
@@ -599,7 +539,7 @@ namespace StringHelper
         }
 
         ///<summary>Append a double without memory allocation.</summary>
-        public LiteStringBuilder Append(double value)
+        public LiteStringBuilder_Refactor Append(double value)
         {
             return Append(value.ToString(s_Culture));
         }
@@ -608,7 +548,7 @@ namespace StringHelper
 #if !NETSTANDARD1_6 && !NETCOREAPP1_1
         [ExcludeFromCodeCoverage]
 #endif
-        private LiteStringBuilder InternalAppend(float valueF)
+        private LiteStringBuilder_Refactor InternalAppend(float valueF)
         {
             double value = valueF;
 
@@ -672,7 +612,7 @@ namespace StringHelper
 #if !NETSTANDARD1_6 && !NETCOREAPP1_1
         [ExcludeFromCodeCoverage]
 #endif
-        private LiteStringBuilder InternalAppend(double value)
+        private LiteStringBuilder_Refactor InternalAppend(double value)
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
@@ -716,7 +656,7 @@ namespace StringHelper
                     isLeadingZero = false;
 
                 //check if needs have to grow more.
-                if (_bufferPos + nbChars + 2 >= this._buffer.Length)
+                if (_bufferPos + nbChars + 2 >= _charsCapacity)
                 {
                     EnsureCapacity(45);
                 }
@@ -746,241 +686,124 @@ namespace StringHelper
         }
         #endregion
 
-
-
-        /// <summary>
-        /// Finds the bucket that logically follows the 'bucket' bucket.  
-        /// </summary>
-        internal Bucket Next(Bucket bucket)
+        ///<summary>Replace all occurences of a string by another one</summary>
+        public LiteStringBuilder_Refactor Replace(string oldStr, string newStr)
         {
-            return FindBucketForIndex(bucket.OffsetLength);
-        }
-
-
-        /// <summary>
-        /// Finds the chunk for the logical index (number of characters in the whole stringbuilder) 'index'
-        /// YOu can then get the offset in this chunk by subtracting the m_BlockOffset field from 'index' 
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        private Bucket FindBucketForIndex(int index)
-        {
-            var totalOffset = _totalOffset;
-            if (index >= totalOffset)
-            {
-                //must be current active buffer
-                return new Bucket(_buffer, _bufferPos, totalOffset, -1);
-            }
-
-            var bucketIndex = _bucketIndex;
-            var buckets = _buckets;
-            for (int i = 0; i < bucketIndex; i++)
-            {
-                Bucket bucket = buckets[i];
-                if (bucket.Offset >= index)
-                {
-                    return bucket;
-                }
-            }
-
-            return default;
-        }
-
-
-        public LiteStringBuilder Replace(string oldStr, string newStr)
-        {
-            int length = this.Length;
-
-            if (length == 0)
-            {
+            int pos = _bufferPos;
+            if (pos == 0)
                 return this;
-            }
 
-            int oldStrLength = oldStr?.Length ?? 0;
-            if (oldStrLength == 0)
-            {
+            int oldstrLength = oldStr?.Length ?? 0;
+            if (oldstrLength == 0)
                 return this;
-            }
 
             if (newStr == null)
-            {
                 newStr = string.Empty;
-            }
 
             int newStrLength = newStr.Length;
 
+            var buffer = _buffer;
+
             int index = 0;
             char[] replacementChars = null;
-            bool hasReplacementChars = false;
+            int replaceIndex = 0;
             bool isToReplace = false;
-            int targetIndex = 0;
-            int targetOffset = 0;
-
-            var bucket = FindBucketForIndex(0);
             unsafe
             {
                 fixed (char* oldPtr = oldStr)
                 {
-                    // Create the new string into _replacement
-                    for (int i = 0; i < length; i++)
-                    {
-                        if (i >= bucket.OffsetLength)
-                        {
-                            bucket = FindBucketForIndex(bucket.OffsetLength);
-                        }
 
-                        char bucketChar = bucket.Buffer[i - bucket.Offset];
-                        if (bucketChar == oldPtr[0]) // If first character found, check for the rest of the string to replace
+                    // Create the new string into _replacement
+                    for (int i = 0; i < pos; i++)
+                    {
+   
+                        if (buffer[i] == oldPtr[0]) // If first character found, check for the rest of the string to replace
                         {
                             int k = 1;//skip one char
-
-                            if (i + k >= bucket.OffsetLength)
-                            {
-                                bucket = FindBucketForIndex(bucket.OffsetLength);
-                            }
-
-                            while (k < oldStrLength && bucket.Buffer[i + k - bucket.Offset] == oldPtr[k])
+                            while (k < oldstrLength && buffer[i + k] == oldPtr[k])
                             {
                                 k++;
-
-                                if (i + k >= bucket.OffsetLength)
-                                {
-                                    bucket = FindBucketForIndex(bucket.OffsetLength);
-                                }
                             }
-                            isToReplace = (k == oldStrLength);
+                            isToReplace = (k == oldstrLength);
                         }
                         if (isToReplace) // Do the replacement
                         {
                             isToReplace = false;
-                            if (!hasReplacementChars)
+                            if (replaceIndex == 0)
                             {
-                                hasReplacementChars = true;
-                                //create and copy new buffer
-                                if (newStrLength > oldStrLength)
+                                if (newStrLength > oldstrLength)
                                 {
-                                    replacementChars = new char[((length - i) / oldStrLength) * newStrLength];
+                                    int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
+                                    int size = ((pos / oldstrLength) * (oldstrLength + deltaLength)) + 1;
+                                    replacementChars = Pool_Instance.Rent(size);
                                 }
                                 else
                                 {
-                                    replacementChars = new char[length];
+                                    replacementChars = Pool_Instance.Rent(pos);
                                 }
-
+                                //first replacement target
 
                                 //copy first set of char that did not match.
-                                targetIndex = bucket.Index;
-                                targetOffset = bucket.Offset;
-                                index = (i - targetOffset);
-                                for (var a = 0; a < index; a++)
-                                {
-                                    replacementChars[a] = bucket.Buffer[a];
-                                }
-
-
-                                // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
+                                //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
+                                //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
+                                new Span<char>(buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
+                                index = i;
                             }
 
-                            i += oldStrLength - 1;
+                            replaceIndex++;
+                            i += oldstrLength - 1;
                             for (int k = 0; k < newStrLength; k++)
                             {
                                 replacementChars[index++] = newStr[k];
                             }
                         }
-                        else if (hasReplacementChars)// No replacement, copy the old character
+                        else if (replaceIndex > 0)// No replacement, copy the old character
                         {
                             //could batch these up instead one at a time!
-                            replacementChars[index++] = bucketChar;
+                            replacementChars[index++] = buffer[i];
                         }
                     }//end for
                 }
             }
-            if (hasReplacementChars)
+            if (replaceIndex > 0)
             {
                 // Copy back the new string into _chars
-                if (targetIndex == -1)
-                {
-                    int bucketIndex = _bucketIndex;
-                    //add to bucket
-                    if (bucketIndex == 0)
-                    {
-                        EnsureBucketCapacity();
-                    }
+                EnsureCapacity(index - pos);
+                //   Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
 
-                    _buckets[bucketIndex] = new Bucket(replacementChars, index, targetOffset, bucketIndex);
-                    _bucketIndex = bucketIndex + 1;
-                }
-                else
-                {
-                    //replace
-                    _buckets[targetIndex] = new Bucket(replacementChars, index, targetOffset, targetIndex);
-                    _bucketIndex = targetIndex + 1;
-                }
+                new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(_buffer));
 
-                _bufferPos = 0;
-                _totalOffset = index;
+                Pool_Instance.Return(replacementChars);
+                _bufferPos = index;
             }
+
 
             return this;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
         {
-            var buffer = _buffer;
-            int currentCapacity = buffer.Length;
+            int capacity = _charsCapacity;
             int pos = _bufferPos;
-            if (pos + appendLength > currentCapacity)
+            if (pos + appendLength > capacity)
             {
-                int totalLength = this.Length;
-                int minCalc = (totalLength < 8000) ? totalLength : 8000;
-                int newCapacity = (appendLength > minCalc) ? appendLength : minCalc;
-
+                //capacity = capacity + appendLength + 1;
+                //capacity = (int)((capacity + appendLength) * 1.5);
+                //    capacity = Utilities.GetPaddedCapacity( capacity + appendLength);
+                int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
+                char[] newBuffer = Pool_Instance.Rent(newCapacity);
                 if (pos > 0)
                 {
-                    //set size
-                    EnsureBucketCapacity();
-
-                    //if (pos != currentCapacity)
-                    //{
-                    //    //trim
-                    //    char[] newItems = new char[pos];
-                    //    Buffer.BlockCopy(buffer, 0, newItems, 0, pos * 2);
-                    //    //new Span<char>(buffer, 0, pos).TryCopyTo(new Span<char>(newItems));
-                    //    buffer = newItems;
-                    //}
-
                     //copy data
-                    int index = _bucketIndex;
-                    int offset = _totalOffset;
-                    _buckets[index] = new Bucket(buffer, pos, offset, index);
-                    _bucketIndex = index + 1;
-                    _totalOffset = offset + pos;
-                    _bufferPos = 0;
+                    new Span<char>(_buffer, 0, _bufferPos).TryCopyTo(new Span<char>(newBuffer));
+                    //   Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _bufferPos * 2);
                 }
+                Pool_Instance.Return(_buffer);
 
-                _buffer = new char[newCapacity]; ;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EnsureBucketCapacity()
-        {
-            int len = _buckets.Length;
-            int index = _bucketIndex;
-            if (len == index)
-            {
-                Bucket[] newItems = new Bucket[len + 4];
-                if (index > 0)
-                {
-
-#if NETCOREAPP3_0 || NETCOREAPP1_0 || NETCOREAPP1_1 || NETCOREAPP2_0
-                    new Span<Bucket>(_buckets, 0, index).CopyTo(new Span<Bucket>(newItems));
-#else
-                    //better performance for CLR
-                    Array.Copy(_buckets, 0, newItems, 0, index);
-#endif
-                }
-                _buckets = newItems;
+                _buffer = newBuffer;
+                _charsCapacity = newBuffer.Length;
             }
         }
 
@@ -989,22 +812,11 @@ namespace StringHelper
             unchecked
             {
                 int hash = 0;
-
-                for(var i = 0; i < _bucketIndex; i++)
-                {
-                    var buffer = _buckets[i];
-                    for (var a = 0; a < buffer.Length; a++)
-                    {
-                        hash += buffer.Buffer[a];
-                    }
-                }
-
                 for (var i = 0; i < _bufferPos; i++)
                 {
-                    hash += _buffer[i];
+                    hash += _buffer[i].GetHashCode();
                 }
-
-                return 31 * hash + this.Length;
+                return 31 * hash + _bufferPos;
             }
         }
     }
