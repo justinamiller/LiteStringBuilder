@@ -233,18 +233,7 @@ namespace StringHelper
                 return false;
             }
 
-            var thisBucket = this.Next(default);
-            var otherBucket = other.Next(default);
-            while (thisBucket.Length > 0)
-            {
-                if (!thisBucket.Span.SequenceEqual<char>(otherBucket.Span))
-                {
-                    return false;
-                }
-            }
-
-            //encase this length is different.
-            return thisBucket.Span.SequenceEqual<char>(otherBucket.Span);
+            return this.ToString() = other.ToString();
         }
 
         // Set methods: 
