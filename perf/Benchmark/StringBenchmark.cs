@@ -60,9 +60,9 @@ namespace Benchmark
 
 
         [Benchmark]
-        public string LiteStringBuilder13()
+        public string LiteStringBuilder_OLD()
         {
-            var m_strBuilder = new LiteStringBuilder13(1);
+            var m_strBuilder = new LiteStringBuilder_OLD(1);
             m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z');
             return m_strBuilder.ToString();
         }

@@ -58,9 +58,9 @@ namespace Benchmark.Core
 
       
         [Benchmark]
-        public string LiteStringBuilder13()
+        public string LiteStringBuilder_OLD()
         {
-            var m_strBuilder = new LiteStringBuilder13(1);
+            var m_strBuilder = new LiteStringBuilder_OLD(1);
             m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z').Replace("373", "5428").Replace("St Paul", "HOT");
             return m_strBuilder.ToString();
         }
@@ -119,9 +119,9 @@ namespace Benchmark.Core
 
 
         [Benchmark]
-        public string Large_LiteStringBuilder13()
+        public string Large_LiteStringBuilder_OLD()
         {
-            var m_strCustom = new LiteStringBuilder13(1);
+            var m_strCustom = new LiteStringBuilder_OLD(1);
             // m_strCustom.Clear();
             m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4);
             return m_strCustom.ToString();
@@ -175,9 +175,9 @@ namespace Benchmark.Core
         }
 
         [Benchmark]
-        public string Primative_LiteStringBuilder13()
+        public string Primative_LiteStringBuilder_Old()
         {
-            var m_strCustom = new LiteStringBuilder13(16);
+            var m_strCustom = new LiteStringBuilder_OLD(16);
             // m_strCustom.Clear();
             m_strCustom.Append(char.MaxValue).Append(Int16.MaxValue).Append(Int32.MaxValue).Append(Int64.MaxValue).Append(DateTime.MaxValue).Append(double.MaxValue).Append(float.MaxValue).Append(true).Append(byte.MaxValue).Append(sbyte.MaxValue).Append("HELLOWORLD");
             return m_strCustom.ToString();
@@ -229,9 +229,9 @@ namespace Benchmark.Core
         }
 
         [Benchmark]
-        public string LargeArray_LiteStringBuilder13()
+        public string LargeArray_LiteStringBuilder_Old()
         {
-            var m_strCustom = new LiteStringBuilder13(1);
+            var m_strCustom = new LiteStringBuilder_OLD(1);
             // m_strCustom.Clear();
             m_strCustom.Append(_bigArray1).Append(_bigArray2).Append(_bigArray3);
             return m_strCustom.ToString();

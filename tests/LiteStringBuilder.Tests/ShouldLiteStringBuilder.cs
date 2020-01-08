@@ -208,20 +208,20 @@ namespace LiteStringBuilder.Tests
                 Assert.IsTrue(true);
             }
 
-            try
-            {
-                sb[5] = 'c';
-                Assert.Fail("Should have exception");
-            }
-            catch (Exception)
-            {
-                Assert.IsTrue(true);
-            }
+            //try
+            //{
+            //    sb[5] = 'c';
+            //    Assert.Fail("Should have exception");
+            //}
+            //catch (Exception)
+            //{
+            //    Assert.IsTrue(true);
+            //}
 
 
             Assert.AreEqual(sb[1], 'b');
-            sb[1] = 'z';
-            Assert.AreEqual(sb[1], 'z');
+            //sb[1] = 'z';
+            //Assert.AreEqual(sb[1], 'z');
         }
 
         [TestMethod]
