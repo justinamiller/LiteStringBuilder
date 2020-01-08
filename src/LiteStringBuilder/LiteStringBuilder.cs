@@ -976,14 +976,18 @@ namespace StringHelper
             {
                 int hash = 0;
 
-                var buffer = FindBucketForIndex(0);
-                while (buffer.Length > 0)
+                for(var i = 0; i < _bucketIndex; i++)
                 {
-                    for (var i = 0; i < buffer.Length; i++)
+                    var buffer = _buckets[i];
+                    for (var a = 0; a < buffer.Length; a++)
                     {
-                        hash += buffer.Buffer[i];
+                        hash += buffer.Buffer[a];
                     }
-                    buffer = Next(buffer);
+                }
+
+                for (var i = 0; i < _bufferPos; i++)
+                {
+                    hash += _buffer[i];
                 }
 
                 return 31 * hash + this.Length;
