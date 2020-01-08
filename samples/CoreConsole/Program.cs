@@ -15,25 +15,9 @@ namespace CoreConsole
         private readonly static string str3 = new string('c', 1500);
         private readonly static string str4 = new string('d', 4000);
 
-        public static string Large_LiteStringBuilder10()
-        {
-            var m_strCustom = new LiteStringBuilder10(1);
-            // m_strCustom.Clear();
-            m_strCustom.Append(str1).Append(str2).Append(str3).Append(str4);
-            return m_strCustom.ToString();
-        }
         #endregion
-
-        static Program()
-        {
-            new LiteStringBuilder10(1);
-        }
         static void Main(string[] args)
         {
-            for(var i=0;i<100;i++)
-                Large_LiteStringBuilder10();
-
-            return;
             var fs = new LiteStringBuilder();
             fs.Append("Hello World");
           

@@ -51,6 +51,23 @@ namespace StringHelper
         }
 
 
+        private int Capacity
+        {
+            get
+            {
+                int capacity = 0;
+                for(var i = 0; i < _buckets.Length; i++)
+                {
+                    capacity += _buckets[i].Buffer?.Length ?? 0;
+                }
+
+                capacity += _buffer.Length;
+
+                return capacity;
+            }
+        }
+
+
 
         /// <summary>
         /// Get a new instance of LiteStringBuilder13
@@ -136,6 +153,7 @@ namespace StringHelper
             {
                 return string.Empty;
             }
+
 #if NETCOREAPP3_0 || NETSTANDARD2_1
             return string.Create(totalLength, (_buckets, _bucketIndex, _buffer, _bufferPos), StringCreationAction);
 #else
@@ -717,10 +735,11 @@ namespace StringHelper
         /// <returns></returns>
         private Bucket FindBucketForIndex(int index)
         {
-            if (index >= this._totalOffset)
+            var totalOffset = _totalOffset;
+            if (index >= totalOffset)
             {
                 //must be current active buffer
-                return new Bucket(_buffer, _bufferPos, this._totalOffset, -1);
+                return new Bucket(_buffer, _bufferPos, totalOffset, -1);
             }
 
             var bucketIndex = _bucketIndex;
@@ -737,881 +756,38 @@ namespace StringHelper
             return default;
         }
 
-        private void ReplaceFast(Bucket chunk, int indexInChunk, int count, string oldValue, string newValue)
-        {
-            char firstChar = oldValue[0];
-            int oldstrLength = oldValue.Length;
-            int newstrLength = newValue.Length;
-            bool isToReplace = false;
-            int index = 0;
-            int matchChunkIndex = 0;
-            int[] matchChunks = new int[_bucketIndex + 1];
-            int calculateOffset = 0;
-            while (count > 0)
-            {
-                if (indexInChunk >= chunk.Length)
-                {
-                    chunk = Next(chunk);
-
-                    indexInChunk = 0;
-                }
-
-
-
-                if (chunk.Buffer[indexInChunk] == firstChar) // If first character found, check for the rest of the string to replace
-                {
-                    matchChunkIndex = 0;
-                    matchChunks[matchChunkIndex++] = chunk.Offset;
-
-                    int k = 1;//skip one char
-                    int i = 1;
-                    while (k < oldstrLength)
-                    {
-                        if (indexInChunk + i >= chunk.Length)
-                        {
-                            chunk = Next(chunk);
-
-                            indexInChunk = 0;
-                            i = 0;
-                            matchChunks[matchChunkIndex++] = chunk.Offset;
-                        }
-
-
-                        if (chunk.Buffer[indexInChunk + i] == oldValue[k])
-                        {
-                            i++;
-                            k++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    isToReplace = (k == oldstrLength);
-                }
-
-                if (isToReplace)
-                {
-                    char[] newBuffer;
-                    int newSize = 0;
-                    for (var i = 0; i < matchChunkIndex; i++)
-                    {
-                        newSize += FindBucketForIndex(matchChunks[i]).Length;
-                    }
-
-
-
-                    newBuffer = new char[newSize + (newstrLength - oldstrLength)];
-                    int copyIndex = 0;
-                    Bucket buffer;
-
-                    buffer = FindBucketForIndex(matchChunks[0]);
-
-                    int localIndex = 0;
-                    int skipIndex = 0;
-
-                    int targetIndex = index;// + calculateOffset;// - (buffer.Offset - buffer.Length);
-
-                    if (targetIndex > 0)
-                    {
-                        //copy front
-                        new Span<char>(buffer.Buffer, 0, targetIndex).TryCopyTo(new Span<char>(newBuffer, 0, targetIndex));
-                        copyIndex += targetIndex;
-                        localIndex += targetIndex;
-                        skipIndex += targetIndex;
-                    }
-
-                    //replace mid
-                    for (int k = 0; k < newstrLength; k++)
-                    {
-                        newBuffer[copyIndex + k] = newValue[k];
-                    }
-                    copyIndex += newstrLength;
-                    localIndex += newstrLength;
-
-
-
-                    if (matchChunkIndex != 0)
-                    {
-                        for (var i = 1; i < matchChunkIndex; i++)
-                        {
-                            buffer = FindBucketForIndex(matchChunks[i]);
-                            skipIndex += buffer.Length;
-                        }
-                    }
-
-                    if ((buffer.Offset + buffer.Length) > skipIndex)
-                    {
-                        //copy remainding
-                        int sourceIndex = buffer.Length - (buffer.Offset + buffer.Length - skipIndex);
-                        new Span<char>(buffer.Buffer).Slice(sourceIndex).TryCopyTo(new Span<char>(newBuffer, targetIndex + newstrLength, newBuffer.Length - (targetIndex + newstrLength)));
-                        copyIndex += (buffer.Length - (targetIndex + oldstrLength));
-                    }
-
-
-
-
-                    buffer = FindBucketForIndex(matchChunks[0]);
-
-                    int bufferIndex = Array.IndexOf(_buckets, buffer);
-                    if (bufferIndex == -1)
-                    {
-                        _buffer = newBuffer;
-                        _bufferPos = copyIndex;
-                    }
-                    else
-                    {
-                        //new size modifier
-                        _totalOffset = _totalOffset + newstrLength - oldstrLength;
-                        if (matchChunkIndex != _bucketIndex)
-                        {
-                            _buckets[bufferIndex] = new Bucket(newBuffer, newBuffer.Length, buffer.Offset,bufferIndex);
-                            _bucketIndex = bufferIndex;
-                        }
-                        else
-                        {
-                            //all from bucket
-                            _buckets[0] = new Bucket(newBuffer, newBuffer.Length, buffer.Offset,0);
-                            _bucketIndex = 1;
-                        }
-                    }
-
-                    calculateOffset += (newstrLength - oldstrLength);
-                    isToReplace = false;
-
-                }//end isToReplace
-
-
-
-                --count;
-                indexInChunk++;
-
-                index++;
-            }
-        }
-
-        private LiteStringBuilder13 ReplaceSlow(string oldStr, string newStr)
-        {
-
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            var value = this.ToString();
-            if (s_Culture.CompareInfo.IndexOf(value, oldStr, CompareOptions.None) >= 0)
-            {
-
-                int bucketIndex = _bucketIndex;
-                if (bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-                else if (bucketIndex > 1)
-                {
-                    for (var i = 1; i < bucketIndex; i++)
-                    {
-                        _buckets[i] = default;
-                    }
-                }
-
-                var replaceChar = value.Replace(oldStr, newStr).ToCharArray();
-                int newLen = replaceChar.Length;
-                _buckets[0] = new Bucket(replaceChar, newLen, 0,0);
-
-                _bucketIndex = 1;
-                _bufferPos = 0;
-                _totalOffset = newLen;
-            }
-
-
-            //var chunk = FindBucketForIndex(0);
-            //ReplaceFast(chunk, 0, totalLength, oldStr, newStr);
-
-            return this;
-        }
 
         public LiteStringBuilder13 Replace(string oldStr, string newStr)
         {
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            var bucket = FindBucketForIndex(0);
-            int matchIndex = 0;
-
-            int[] matching = Array.Empty<int>();
-            int matchingIndex = 0;
-            for (var i = 0; i < totalLength; i++)
-            {
-                if (i >= bucket.OffsetLength)
-                {
-                    bucket = Next(bucket);
-                }
-
-                if (bucket.Buffer[i - bucket.Offset] == oldStr[matchIndex])
-                {
-                    matchIndex++;
-
-                    if (matchIndex == oldstrLength)
-                    {
-                        int matchingLength = matching.Length;
-                        if (matchingLength == matchingIndex)
-                        {
-                            if (matchingLength == 0)
-                            {
-                                matching = new int[4];
-                            }
-                            else
-                            {
-                                Array.Resize(ref matching, matchingLength + 4);
-                            }
-                        }
-
-                        //have complete match.
-                        matching[matchingIndex++] = i - oldstrLength;
-                        matchIndex = 0;
-                    }
-                }
-                else
-                {
-                    //no match
-                    matchIndex = 0;
-                }
-            }
-
-            if (matchingIndex > 0)
-            {
-                int newStrLength = newStr.Length;
-                bucket = default;
-                int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
-                int size = ((totalLength / oldstrLength) * (oldstrLength + deltaLength)) + 1;
-                var replacementChars = new char[size];
-                for (var i = 0; i < matchingIndex; i++)
-                {
-                    if (i >= bucket.OffsetLength)
-                    {
-                        bucket = Next(bucket);
-                    }
-
-
-
-                }
-            }
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace5(string oldStr, string newStr)
-        {
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            var bucket = FindBucketForIndex(0);
-            int matchIndex = 0;
-
-            int[] matching = Array.Empty<int>();
-            int matchingIndex = 0;
-            char[] replaceChars = Array.Empty<char>();
-            int replaceIndex = 0;
-            for (var i = 0; i < totalLength; i++)
-            {
-                if (i >= bucket.Length + bucket.Offset)
-                {
-                    bucket = Next(bucket);
-                }
-
-                if (bucket.Buffer[i - bucket.Offset] == oldStr[matchIndex])
-                {
-                    matchIndex++;
-
-                    if (matchIndex == oldstrLength)
-                    {
-
-                        //if (size>replaceChars.Length)
-                        //{
-                        //    if (replaceIndex == 0)
-                        //    {
-                        //        replaceChars = new char[size];
-                        //    }
-                        //    else
-                        //    {
-                        //        Array.Resize(ref replaceChars, size);
-                        //    }
-                        //}
-
-                        int firstIndex = (i + 1) - bucket.Offset - oldstrLength;
-                        Bucket first = bucket;
-                        if (i >= bucket.Length + bucket.Offset)
-                        {
-                            first = FindBucketForIndex(i - oldstrLength);
-                        }
-
-                        if (first.Equals(bucket))
-                        {
-                            int size = bucket.Length + (newStr.Length - oldstrLength);
-                            char[] newBuffer = new char[size];
-                            int trackIndex = firstIndex;
-                            if (firstIndex > 0)
-                            {
-                                Array.Copy(bucket.Buffer, 0, newBuffer, 0, firstIndex);
-                            }
-
-                            for (var a = 0; a < newStr.Length; a++)
-                            {
-                                newBuffer[trackIndex++] = newStr[a];
-                            }
-
-                            Array.Copy(bucket.Buffer, firstIndex + oldstrLength, newBuffer, trackIndex, bucket.Length - firstIndex - oldstrLength);
-
-
-                        }
-                        else
-                        {
-
-                        }
-
-                        int matchingLength = matching.Length;
-                        if (matchingLength == matchingIndex)
-                        {
-                            if (matchingLength == 0)
-                            {
-                                matching = new int[4];
-                            }
-                            else
-                            {
-                                Array.Resize(ref matching, matchingLength + 4);
-                            }
-                        }
-
-                        //have complete match.
-                        matching[matchingIndex++] = i - oldstrLength;
-                        matchIndex = 0;
-                    }
-                }
-                else
-                {
-                    //no match
-                    matchIndex = 0;
-                }
-            }
-
-            //if (matchingIndex > 0)
-            //{
-            //    return ReplaceSlow(oldStr, newStr);
-            //}
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace2(string oldStr, string newStr)
-        {
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            var bucket = FindBucketForIndex(0);
-            int bucketLength = bucket.Length + bucket.Offset;
-            int matchIndex = 0;
-
-            int[] matching = Array.Empty<int>();
-            int matchingIndex = 0;
-            int matchingLength = 0;
-            for (var i = 0; i < totalLength; i++)
-            {
-
-                if (i >= bucketLength)
-                {
-                    bucket = FindBucketForIndex(bucketLength);
-                    bucketLength = bucket.Length + bucket.Offset;
-                }
-
-                if (bucket.Buffer[i - bucket.Offset] == oldStr[matchIndex])
-                {
-                    matchIndex++;
-                    //do we match everything
-                    if (matchIndex == oldstrLength)
-                    {
-                        if (matchingLength == matchingIndex)
-                        {
-                            if (matchingLength == 0)
-                            {
-                                matching = new int[4];
-                                matchingLength = 4;
-                            }
-                            else
-                            {
-                                matchingLength += 4;
-                                Array.Resize(ref matching, matchingLength);
-                            }
-                        }
-
-                        //have complete match.
-                        matching[matchingIndex++] = i - oldstrLength;
-                        matchIndex = 0;
-                    }//end full match
-                }
-                else
-                {
-                    //no match
-                    matchIndex = 0;
-                }
-            }
-
-            //if (matchingIndex > 0)
-            //{
-            //    return ReplaceSlow(oldStr, newStr);
-            //}
-
-
-            return this;
-        }
-
-
-        public LiteStringBuilder13 Replace4(string oldStr, string newStr)
-        {
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace3(string oldStr, string newStr)
-        {
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            int matchIndex = 0;
-            int[] matching = Array.Empty<int>();
-            int matchingIndex = 0;
-            int matchingLength = 0;
-            var bucket = FindBucketForIndex(0);
-            int offset = bucket.Offset;
-            int bucketLength = bucket.Length + offset;
-            var buffer = bucket.Buffer;
-
-            for (var i = 0; i < totalLength; i++)
-            {
-                if (i >= bucketLength)
-                {
-                    bucket = FindBucketForIndex(bucketLength);
-                    offset = bucket.Offset;
-                    bucketLength = bucket.Length + offset;
-                    buffer = bucket.Buffer;
-                }
-
-                if (buffer[i - offset] == oldStr[matchIndex])
-                {
-                    matchIndex++;
-                    //do we match everything
-                    if (matchIndex == oldstrLength)
-                    {
-                        if (matchingLength == matchingIndex)
-                        {
-                            if (matchingLength == 0)
-                            {
-                                matching = new int[4];
-                                matchingLength = 4;
-                            }
-                            else
-                            {
-                                Array.Resize(ref matching, matchingLength + 4);
-                                matchingLength += 4;
-                            }
-                        }
-
-                        //have complete match.
-                        matching[matchingIndex++] = i - oldstrLength;
-                        matchIndex = 0;
-                    }//end full match
-                }
-                else
-                {
-                    //no match
-                    matchIndex = 0;
-                }
-            }
-
-            //if (matchingIndex > 0)
-            //{
-            //    return ReplaceSlow(oldStr, newStr);
-            //}
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace_REAL(string oldStr, string newStr)
-        {
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            int matchIndex = 0;
-            int[] matching = Array.Empty<int>();
-            int matchingIndex = 0;
-            int matchingLength = 0;
-            var bucket = FindBucketForIndex(0);
-            int offset = bucket.Offset;
-            int bucketLength = bucket.Length + offset;
-            var buffer = bucket.Buffer;
-
-            for (var i = 0; i < totalLength; i++)
-            {
-                if (i >= bucketLength)
-                {
-                    bucket = FindBucketForIndex(bucketLength);
-                    offset = bucket.Offset;
-                    bucketLength = bucket.Length + offset;
-                    buffer = bucket.Buffer;
-                }
-
-                if (buffer[i - offset] == oldStr[matchIndex])
-                {
-                    matchIndex++;
-                    //do we match everything
-                    if (matchIndex == oldstrLength)
-                    {
-                        if (matchingLength == matchingIndex)
-                        {
-                            if (matchingLength == 0)
-                            {
-                                matching = new int[4];
-                                matchingLength = 4;
-                            }
-                            else
-                            {
-                                Array.Resize(ref matching, matchingLength + 4);
-                                matchingLength += 4;
-                            }
-                        }
-
-                        //have complete match.
-                        matching[matchingIndex++] = (i + 1) - oldstrLength;
-                        matchIndex = 0;
-                    }//end full match
-                }
-                else
-                {
-                    //no match
-                    matchIndex = 0;
-                }
-            }
-
-
-            if (matchingIndex > 0)
-            {
-
-                var value = this.ToString();
-                int bucketIndex = _bucketIndex;
-                if (bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                var newSize = totalLength + (bucketIndex * (newStr.Length - oldstrLength));
-                var newBuffer = new char[newSize];
-                bucket = default;
-
-                var replace = value.Replace(oldStr, newStr);
-
-                offset = matching[0];
-                int matchMoveIndex = 1;
-                int captureIndex = 0;
-                for (var i = 0; i < newSize; i++)
-                {
-                    if (offset == i)
-                    {
-                        for (var x = 0; x < newStr.Length; x++)
-                        {
-                            newBuffer[(captureIndex++) + x] = newStr[x];
-                        }
-                        i += (oldstrLength - 1);
-                        offset = matching[matchMoveIndex++];
-                    }
-                    else
-                    {
-                        newBuffer[captureIndex++] = value[i];
-                    }
-                }
-
-
-                if (_bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                _buckets[0] = new Bucket(newBuffer, newSize, 0,0);
-
-                _bucketIndex = 1;
-                _bufferPos = 0;
-                _totalOffset = newSize;
-
-            }
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace_Slow(string oldStr, string newStr)
-        {
-            int totalLength = this.Length;
-            if (totalLength == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0 || oldstrLength > totalLength)
-                return this;
-
-            if (newStr == null)
-                newStr = string.Empty;
-
-            int matchIndex = 0;
-            var bucket = FindBucketForIndex(0);
-            int offset = bucket.Offset;
-            int bucketLength = bucket.Length + offset;
-            var buffer = bucket.Buffer;
-
-            for (var i = 0; i < totalLength; i++)
-            {
-                if (i >= bucketLength)
-                {
-                    bucket = FindBucketForIndex(bucketLength);
-                    offset = bucket.Offset;
-                    bucketLength = bucket.Length + offset;
-                    buffer = bucket.Buffer;
-                }
-
-                if (buffer[i - offset] == oldStr[matchIndex])
-                {
-                    matchIndex++;
-                    //do we match everything
-                    if (matchIndex == oldstrLength)
-                    {
-                        //full match
-                        var value = this.ToString();
-                        int bucketIndex = _bucketIndex;
-                        if (bucketIndex == 0)
-                        {
-                            EnsureBucketCapacity();
-                        }
-
-
-                        var replace = value.Replace(oldStr, newStr);
-                        _buckets[0] = new Bucket(replace.ToCharArray(), replace.Length, 0,0);
-
-                        _bucketIndex = 1;
-                        _bufferPos = 0;
-                        _totalOffset = replace.Length;
-
-                        return this;
-                    }//end full match
-                }
-                else
-                {
-                    //no match
-                    matchIndex = 0;
-                }
-            }
-
-            return this;
-        }
-
-        ///<summary>Replace all occurences of a string by another one</summary>
-        public LiteStringBuilder13 Replace_Try(string oldStr, string newStr)
-        {
             int length = this.Length;
 
-
             if (length == 0)
+            {
                 return this;
+            }
 
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0)
+            int oldStrLength = oldStr?.Length ?? 0;
+            if (oldStrLength == 0)
+            {
                 return this;
+            }
 
             if (newStr == null)
-                newStr = "";
+            {
+                newStr = string.Empty;
+            }
 
-
-
+            int newStrLength = newStr.Length;
 
             int index = 0;
             char[] replacementChars = null;
-            int replaceIndex = 0;
-
-            char firstChar = oldStr[0];
-            var bucket = FindBucketForIndex(0);
-            int newStrLength = newStr.Length;
-            bool isToReplace = false;
-            // Create the new string into _replacement
-            for (int i = 0; i < length; i++)
-            {
-
-                if (i >= bucket.OffsetLength)
-                {
-                    bucket = FindBucketForIndex(bucket.OffsetLength);
-                }
-
-                if (bucket.Buffer[i - bucket.Offset] == firstChar) // If first character found, check for the rest of the string to replace
-                {
-                    int k = 1;//skip one char
-
-                    if (i + k >= bucket.OffsetLength)
-                    {
-                        bucket = FindBucketForIndex(bucket.OffsetLength);
-                    }
-
-
-                    while (k < oldstrLength && bucket.Buffer[i + k - bucket.Offset] == oldStr[k])
-                    {
-                        k++;
-
-                        if (i + k >= bucket.OffsetLength)
-                        {
-                            bucket = FindBucketForIndex(bucket.OffsetLength);
-
-                        }
-
-                    }
-                    isToReplace = (k == oldstrLength);
-                }
-                if (isToReplace) // Do the replacement
-                {
-                    isToReplace = false;
-                    if (replaceIndex == 0)
-                    {
-                        int deltaLength = oldstrLength > newStrLength ? oldstrLength : newStrLength;
-                        int size = ((length / oldstrLength) * deltaLength);
-
-                        //first replacement target
-                        //  replacementChars = ArrayPool<char>.Shared.Rent(size);
-                        replacementChars = new char[size];
-                        //copy first set of char that did not match.
-                        //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
-                        //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                        var buffer = FindBucketForIndex(0);
-                        for (var a = 0; a < i; a++)
-                        {
-                            if (a >= buffer.OffsetLength)
-                            {
-                                buffer = FindBucketForIndex(buffer.OffsetLength);
-                            }
-
-                            replacementChars[a] = buffer.Buffer[a - buffer.Offset];
-                        }
-
-
-                        // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
-                        index = i;
-                    }
-
-                    replaceIndex++;
-                    i += oldstrLength - 1;
-                    for (int k = 0; k < newStrLength; k++)
-                    {
-                        replacementChars[index++] = newStr[k];
-                    }
-                }
-                else if (replaceIndex > 0)// No replacement, copy the old character
-                {
-                    //could batch these up instead one at a time!
-                    replacementChars[index++] = bucket.Buffer[i - bucket.Offset];
-                }
-            }//end for
-
-            if (replaceIndex > 0)
-            {
-                // Copy back the new string into _chars
-                // EnsureCapacity(index - _bufferPos);
-                // new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(_buffer));
-                if (_bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                _buckets[0] = new Bucket(replacementChars, index, 0,0);
-                _totalOffset = index;
-                _bucketIndex = 1;
-
-                _bufferPos = 0;
-            }
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace_TrySkip(string oldStr, string newStr)
-        {
-            int length = this.Length;
-
-
-            if (length == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0)
-                return this;
-
-            if (newStr == null)
-                newStr = "";
-
-
-
-
-            int index = 0;
-            char[] replacementChars = null;
-
-            var bucket = FindBucketForIndex(0);
-            int newStrLength = newStr.Length;
             bool isToReplace = false;
             int targetIndex = 0;
             int targetOffset = 0;
+
+            var bucket = FindBucketForIndex(0);
             unsafe
             {
-
                 fixed (char* oldPtr = oldStr)
                 {
                     // Create the new string into _replacement
@@ -1632,7 +808,7 @@ namespace StringHelper
                                 bucket = FindBucketForIndex(bucket.OffsetLength);
                             }
 
-                            while (k < oldstrLength && bucket.Buffer[i + k - bucket.Offset] == oldPtr[k])
+                            while (k < oldStrLength && bucket.Buffer[i + k - bucket.Offset] == oldPtr[k])
                             {
                                 k++;
 
@@ -1641,7 +817,7 @@ namespace StringHelper
                                     bucket = FindBucketForIndex(bucket.OffsetLength);
                                 }
                             }
-                            isToReplace = (k == oldstrLength);
+                            isToReplace = (k == oldStrLength);
                         }
                         if (isToReplace) // Do the replacement
                         {
@@ -1649,9 +825,9 @@ namespace StringHelper
                             if (index==0)
                             {
                                 //create and copy new buffer
-                                if (newStrLength > oldstrLength)
+                                if (newStrLength > oldStrLength)
                                 {
-                                    replacementChars = new char[((length - i) / oldstrLength) * newStrLength];
+                                    replacementChars = new char[((length - i) / oldStrLength) * newStrLength];
                                 }
                                 else
                                 {
@@ -1660,21 +836,19 @@ namespace StringHelper
 
 
                                 //copy first set of char that did not match.
-                                //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
-                                //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                                var buffer = FindBucketForIndex(i);
-                                targetIndex = buffer.Index;
-                                targetOffset = buffer.Offset;
-                                for (var a = buffer.Offset; a < i; a++)
+                                targetIndex = bucket.Index;
+                                targetOffset = bucket.Offset;
+                                index = (i - targetOffset);
+                                for (var a = 0; a < index; a++)
                                 {
-                                    replacementChars[index++] = buffer.Buffer[a - buffer.Offset];
+                                    replacementChars[a] = bucket.Buffer[a];
                                 }
 
 
                                 // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
                             }
 
-                            i += oldstrLength - 1;
+                            i += oldStrLength - 1;
                             for (int k = 0; k < newStrLength; k++)
                             {
                                 replacementChars[index++] = newStr[k];
@@ -1701,7 +875,7 @@ namespace StringHelper
                     }
 
                     _buckets[bucketIndex] = new Bucket(replacementChars, index, targetOffset, bucketIndex);
-                    _bucketIndex += 1 ;
+                    _bucketIndex = bucketIndex+ 1 ;
                 }
                 else
                 {
@@ -1718,545 +892,6 @@ namespace StringHelper
             return this;
         }
 
-        public LiteStringBuilder13 Replace_TryCache(string oldStr, string newStr)
-        {
-            int length = this.Length;
-
-
-            if (length == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0)
-                return this;
-
-            if (newStr == null)
-                newStr = "";
-
-            int newStrLength = newStr.Length;
-
-
-            int index = 0;
-            char[] replacementChars = null;
-
-            char firstChar = oldStr[0];
-            var bucket = FindBucketForIndex(0);
-            bool isToReplace = false;
-            // Create the new string into _replacement
-            for (int i = 0; i < length; i++)
-            {
-                if (i >= bucket.OffsetLength)
-                {
-                    bucket = FindBucketForIndex(bucket.OffsetLength);
-                }
-
-                char bucketChar = bucket.Buffer[i - bucket.Offset];
-                if (bucketChar == firstChar) // If first character found, check for the rest of the string to replace
-                {
-                    int k = 1;//skip one char
-
-                    if (i + k >= bucket.OffsetLength)
-                    {
-                        bucket = FindBucketForIndex(bucket.OffsetLength);
-                    }
-
-
-                    while (k < oldstrLength && bucket.Buffer[i + k - bucket.Offset] == oldStr[k])
-                    {
-                        k++;
-
-                        if (i + k >= bucket.OffsetLength)
-                        {
-                            bucket = FindBucketForIndex(bucket.OffsetLength);
-                        }
-                    }
-
-                    isToReplace = (k == oldstrLength);
-                }
-                if (isToReplace) // Do the replacement
-                {
-                    isToReplace = false;
-                    if (replacementChars is null)
-                    {
-                        //first replacement target
-                        //  replacementChars = ArrayPool<char>.Shared.Rent(size);
-
-                        int size = ((length / oldstrLength) * (oldstrLength > newStrLength ? oldstrLength : newStrLength));
-                        replacementChars = new char[size];
-                        //copy first set of char that did not match.
-                        //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
-                        //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                        var buffer = FindBucketForIndex(0);
-                        for (var a = 0; a < i; a++)
-                        {
-                            if (a >= buffer.OffsetLength)
-                            {
-                                buffer = FindBucketForIndex(buffer.OffsetLength);
-                            }
-
-                            replacementChars[a] = buffer.Buffer[a - buffer.Offset];
-                        }
-
-
-                        // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
-                        index = i;
-                    }
-
-                    i += oldstrLength - 1;
-                    for (int k = 0; k < newStrLength; k++)
-                    {
-                        replacementChars[index++] = newStr[k];
-                    }
-                }
-                else if (replacementChars != null)// No replacement, copy the old character
-                {
-                    //could batch these up instead one at a time!
-                    replacementChars[index++] = bucketChar;
-                }
-            }//end for
-
-            if (replacementChars != null)
-            {
-                //if (_bucketIndex > 0)
-                //{
-                //    for (var i = 1; i < _bucketIndex; i++)
-                //    {
-                //        _buckets[i] = default;
-                //    }
-                //}
-
-
-                // Copy back the new string into _chars
-                // EnsureCapacity(index - _bufferPos);
-                // new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(_buffer));
-                if (_bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                _buckets[0] = new Bucket(replacementChars, index, 0, 0);
-                _totalOffset = index;
-                _bucketIndex = 1;
-
-                //ArrayPool<char>.Shared.Return(replacementChars);
-                // _bufferPos = index;
-                // _bucketIndex = 0;
-                _bufferPos = 0;
-            }
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace_TryCache2(string oldStr, string newStr)
-        {
-            int length = this.Length;
-
-            if (length == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0)
-                return this;
-
-            if (newStr == null)
-                newStr = "";
-
-            int newStrLength = newStr.Length;
-
-            int index = 0;
-            char[] replacementChars = null;
-            bool isToReplace = false;
-            int k;
-            var bucket = FindBucketForIndex(0);
-            unsafe
-            {
-                fixed (char* oldPtr = oldStr)
-                {
-                    // Create the new string into _replacement
-                    for (int i = 0; i < length; i++)
-                    {
-                        if (i >= bucket.OffsetLength)
-                        {
-                            bucket = FindBucketForIndex(bucket.OffsetLength);
-                        }
-
-                        char bucketChar = bucket.Buffer[i - bucket.Offset];
-                        if (bucketChar == oldPtr[0]) // If first character found, check for the rest of the string to replace
-                        {
-                            k = 1;//skip 1st char
-
-                            if (i + k >= bucket.OffsetLength)
-                            {
-                                bucket = FindBucketForIndex(bucket.OffsetLength);
-                            }
-
-
-                            while (k < oldstrLength && bucket.Buffer[i + k - bucket.Offset] == oldPtr[k])
-                            {
-                                k++;
-
-                                if (i + k >= bucket.OffsetLength)
-                                {
-                                    bucket = FindBucketForIndex(bucket.OffsetLength);
-                                }
-                            }
-
-                            isToReplace = (k == oldstrLength);
-                        }
-                        if (isToReplace) // Do the replacement
-                        {
-                            isToReplace = false;
-                            if (replacementChars is null)
-                            {
-                                //first replacement target
-                                if (newStrLength > oldstrLength)
-                                {
-                                    replacementChars = new char[(length / oldstrLength) * newStrLength];
-                                }
-                                else
-                                {
-                                    replacementChars = new char[length];
-                                }
-                              
-                                //copy first set of char that did not match.
-                                //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
-                                //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                                var buffer = FindBucketForIndex(0);
-                                for (var a = 0; a < i; a++)
-                                {
-                                    if (a >= buffer.OffsetLength)
-                                    {
-                                        buffer = FindBucketForIndex(buffer.OffsetLength);
-                                    }
-
-                                    replacementChars[a] = buffer.Buffer[a - buffer.Offset];
-                                }
-
-
-                                // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
-                                index = i;
-                            }
-
-                            i += oldstrLength - 1;
-                            for  (k = 0; k < newStrLength; k++)
-                            {
-                                replacementChars[index++] = newStr[k];
-                            }
-                        }
-                        else if (replacementChars != null)// No replacement, copy the old character
-                        {
-                            //could batch these up instead one at a time!
-                            replacementChars[index++] = bucketChar;
-                        }
-                    }//end for
-
-
-                }
-            }
-
-            if (replacementChars != null)
-            {
-                if (_bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                _buckets[0] = new Bucket(replacementChars, index, 0, 0);
-                _totalOffset = index;
-                _bucketIndex = 1;
-                _bufferPos = 0;
-            }
-
-
-            return this;
-        }
-
-        public LiteStringBuilder13 Replace_TryCache3(string oldStr, string newStr)
-        {
-            int length = this.Length;
-
-
-            if (length == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0)
-                return this;
-
-            if (newStr == null)
-                newStr = "";
-
-            int newStrLength = newStr.Length;
-
-            int index = 0;
-            char[] replacementChars = null;
-            bool isToReplace = false;
-            var bucket = FindBucketForIndex(0);
-
-            unsafe
-            {
-                fixed (char* oldPtr = oldStr)
-                {
-
-                    // Create the new string into _replacement
-                    for (int i = 0; i < length; i++)
-                    {
-                        if (i >= bucket.OffsetLength)
-                        {
-                            bucket = FindBucketForIndex(bucket.OffsetLength);
-                        }
-
-                        char bucketChar = bucket.Buffer[i - bucket.Offset];
-                        if (bucketChar == oldPtr[0]) // If first character found, check for the rest of the string to replace
-                        {
-                            int k = 1;//skip one char
-
-                            if (i + k >= bucket.OffsetLength)
-                            {
-                                bucket = FindBucketForIndex(bucket.OffsetLength);
-                            }
-
-
-                            while (k < oldstrLength && bucket.Buffer[i + k - bucket.Offset] == oldPtr[k])
-                            {
-                                k++;
-
-                                if (i + k >= bucket.OffsetLength)
-                                {
-                                    bucket = FindBucketForIndex(bucket.OffsetLength);
-                                }
-                            }
-
-                            isToReplace = (k == oldstrLength);
-                        }
-                        if (isToReplace) // Do the replacement
-                        {
-                            isToReplace = false;
-                            if (replacementChars is null)
-                            {
-                                //first replacement target
-                                //  replacementChars = ArrayPool<char>.Shared.Rent(size);
-                                int size = length;
-                                if (newStrLength > oldstrLength)
-                                {
-                                    size = (length / oldstrLength) * newStrLength;
-                                }
-
-                                replacementChars = new char[size];
-                                //copy first set of char that did not match.
-                                //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
-                                //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                                var buffer = FindBucketForIndex(0);
-
-                                for (var a = 0; a < i; a++)
-                                {
-                                    if (a >= buffer.OffsetLength)
-                                    {
-                                        buffer = FindBucketForIndex(buffer.OffsetLength);
-                                    }
-
-                                    if (i>buffer.OffsetLength)
-                                    {
-                                        Buffer.BlockCopy(buffer.Buffer, 0, replacementChars, a *2, buffer.Length*2);
-                                        a += (buffer.Length-1);
-                                    }
-                                    else
-                                    {
-                                        replacementChars[a] = buffer.Buffer[a - buffer.Offset];
-                                    }
-                                }
-
-
-                                // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
-                                index = i;
-                            }
-
-                            i += oldstrLength - 1;
-    
-                            for (int k = 0; k < newStrLength; k++)
-                            {
-                                replacementChars[index++] = newStr[k];
-                            }
-                        }
-                        else if (replacementChars != null)// No replacement, copy the old character
-                        {
-                            //could batch these up instead one at a time!
-                            replacementChars[index++] = bucketChar;
-                        }
-                    }//end for
-
-
-                }
-            }
-
-            if (replacementChars != null)
-            {
-                //if (_bucketIndex > 0)
-                //{
-                //    for (var i = 1; i < _bucketIndex; i++)
-                //    {
-                //        _buckets[i] = default;
-                //    }
-                //}
-
-
-                // Copy back the new string into _chars
-                // EnsureCapacity(index - _bufferPos);
-                // new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(_buffer));
-                if (_bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                _buckets[0] = new Bucket(replacementChars, index, 0, 0);
-                _totalOffset = index;
-                _bucketIndex = 1;
-                _bufferPos = 0;
-            }
-
-
-            return this;
-        }
-
-
-        public LiteStringBuilder13 Replace_TryCacheRework(string oldStr, string newStr)
-        {
-            int length = this.Length;
-
-
-            if (length == 0)
-                return this;
-
-            int oldstrLength = oldStr?.Length ?? 0;
-            if (oldstrLength == 0)
-                return this;
-
-            if (newStr == null)
-                newStr = "";
-
-            int newStrLength = newStr.Length;
-
-
-            int index = 0;
-            char[] replacementChars = null;
-            int replaceIndex = 0;
-
-            var bucket = FindBucketForIndex(0);
-            int matchIndex = 0;
-            // Create the new string into _replacement
-            for (int i = 0; i < length; i++)
-            {
-                if (i >= bucket.OffsetLength)
-                {
-                    bucket = FindBucketForIndex(bucket.OffsetLength);
-                }
-
-                char bucketChar = bucket.Buffer[i - bucket.Offset];
-                if (bucketChar == oldStr[matchIndex]) // If first character found, check for the rest of the string to replace
-                {
-                    matchIndex++;
-
-                    if (matchIndex == oldstrLength) // Do the replacement
-                    {
-                        if (replaceIndex == 0)
-                        {
-                            //first replacement target
-                            //  replacementChars = ArrayPool<char>.Shared.Rent(size);
-
-                            int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
-                            int size = ((length / oldstrLength) * (oldstrLength + deltaLength)) + 1;
-                            replacementChars = new char[size];
-                            //copy first set of char that did not match.
-                            //  Buffer.BlockCopy(_buffer, 0, replacementChars, 0, i * 2);
-                            //   value.TryCopyTo(_buffer.AsSpan(_bufferPos, _charsCapacity - _bufferPos));
-                            var buffer = FindBucketForIndex(0);
-                            index = i - oldstrLength + 1;
-                            for (var a = 0; a < index; a++)
-                            {
-                                if (a >= buffer.OffsetLength)
-                                {
-                                    buffer = FindBucketForIndex(buffer.OffsetLength);
-                                }
-
-                                if (index > buffer.OffsetLength)
-                                {
-                                    buffer.Span.TryCopyTo(new Span<char>(replacementChars, a, buffer.Length));
-                                    a += (buffer.Length - 1);
-                                }
-                                else
-                                {
-                                    replacementChars[a] = buffer.Buffer[a - buffer.Offset];
-                                }
-                            }
-
-
-                            // new Span<char>(_buffer, 0, i).TryCopyTo(new Span<char>(replacementChars, 0, i));
-                            // index = i;
-                        }
-                        else
-                        {
-                            index -= oldstrLength - 1;
-                        }
-
-                        replaceIndex++;
-                        //  i += oldstrLength - 1;
-                        for (int k = 0; k < newStrLength; k++)
-                        {
-                            replacementChars[index++] = newStr[k];
-                        }
-
-                        matchIndex = 0;
-                    }
-                    else if (replaceIndex > 0)
-                    {
-                        replacementChars[index++] = bucketChar;
-                    }
-                }
-                else if (replaceIndex > 0)// No replacement, copy the old character
-                {
-                    //could batch these up instead one at a time!
-                    replacementChars[index++] = bucketChar;
-                    matchIndex = 0;
-                }
-                else
-                {
-                    matchIndex = 0;
-                }
-            }//end for
-
-            if (replaceIndex > 0)
-            {
-                //if (_bucketIndex > 0)
-                //{
-                //    for (var i = 1; i < _bucketIndex; i++)
-                //    {
-                //        _buckets[i] = default;
-                //    }
-                //}
-
-                if (_bucketIndex == 0)
-                {
-                    EnsureBucketCapacity();
-                }
-
-                // Copy back the new string into _chars
-                // EnsureCapacity(index - _bufferPos);
-                // new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(_buffer));
-                _buckets[0] = new Bucket(replacementChars, index, 0, 0);
-                _totalOffset = index;
-                _bucketIndex = 1;
-
-                //ArrayPool<char>.Shared.Return(replacementChars);
-                // _bufferPos = index;
-                // _bucketIndex = 0;
-                _bufferPos = 0;
-            }
-
-
-            return this;
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int appendLength)
         {
@@ -2266,8 +901,9 @@ namespace StringHelper
             if (pos + appendLength > currentCapacity)
             {
                 int totalLength = this.Length;
-                int minCalc = (totalLength <= 8000) ? totalLength : 8000;
+                int minCalc = (totalLength < 8000) ? totalLength : 8000;
                 int newCapacity = (appendLength > minCalc) ? appendLength : minCalc;
+
                 if (pos > 0)
                 {
                     //set size
@@ -2283,9 +919,11 @@ namespace StringHelper
                     //}
 
                     //copy data
-                    _buckets[_bucketIndex] = new Bucket(buffer, pos, _totalOffset, _bucketIndex);
-                    _bucketIndex += 1;
-                    _totalOffset += pos;
+                    int index = _bucketIndex;
+                    int offset = _totalOffset;
+                    _buckets[index] = new Bucket(buffer, pos, offset, index);
+                    _bucketIndex = index+1;
+                    _totalOffset = offset+ pos;
                     _bufferPos = 0;
                 }
 

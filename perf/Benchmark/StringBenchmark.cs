@@ -60,14 +60,6 @@ namespace Benchmark
 
 
         [Benchmark]
-        public string LiteStringBuilder10()
-        {
-            var m_strBuilder = new LiteStringBuilder10(1);
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z');
-            return m_strBuilder.ToString();
-        }
-
-        [Benchmark]
         public string LiteStringBuilder13()
         {
             var m_strBuilder = new LiteStringBuilder13(1);
@@ -75,13 +67,6 @@ namespace Benchmark
             return m_strBuilder.ToString();
         }
 
-        [Benchmark]
-        public string LiteStringBuilder2()
-        {
-            var m_strBuilder = new LiteStringBuilder2(1);
-            m_strBuilder.Append("PI=").Append(Math.PI).Append("_373=").Append(373).Append(true).Append(short.MaxValue).Append('z');
-            return m_strBuilder.ToString();
-        }
 
         //#region BIGString
 
