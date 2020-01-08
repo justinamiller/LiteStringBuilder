@@ -233,7 +233,7 @@ namespace StringHelper
                 return false;
             }
 
-            return this.ToString() = other.ToString();
+            return this.ToString() == other.ToString();
         }
 
         // Set methods: 
