@@ -22,16 +22,6 @@ namespace StringHelper
             this.Index = index;
         }
 
-        public Bucket(Bucket bucket, int offset)
-        {
-            this.Buffer = bucket.Buffer;
-            this.Length = bucket.Length;
-            this.Offset = offset;
-            this.Index = 0;
-
-            this.OffsetLength = Length + offset;
-        }
-
         public Span<char> Span
         {
             get
@@ -42,7 +32,7 @@ namespace StringHelper
 
         public override string ToString()
         {
-           return new Span<char>(this.Buffer, 0, this.Length).ToString();
+           return this.Span.ToString();
         }
 
         public override bool Equals(object obj)
@@ -82,7 +72,7 @@ namespace StringHelper
                 int hash = 0;
                 for (var i = 0; i < this.Length; i++)
                 {
-                    hash += Buffer[i].GetHashCode();
+                    hash += Buffer[i];
                 }
                 return 31 * hash + this.Length + this.Offset;
             }

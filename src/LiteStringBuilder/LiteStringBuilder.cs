@@ -51,12 +51,12 @@ namespace StringHelper
         }
 
 
-        private int Capacity
+        internal int Capacity
         {
             get
             {
                 int capacity = 0;
-                for(var i = 0; i < _buckets.Length; i++)
+                for (var i = 0; i < _buckets.Length; i++)
                 {
                     capacity += _buckets[i].Buffer?.Length ?? 0;
                 }
@@ -228,12 +228,23 @@ namespace StringHelper
 
 
             // Check for same Id and same Values
-            if (other.Length != this.Length)
+            if (other.Length != this.Length || other.Capacity != this.Capacity)
             {
                 return false;
             }
 
-            return this.ToString() == other.ToString();
+            var thisBucket = this.Next(default);
+            var otherBucket = other.Next(default);
+            while (thisBucket.Length > 0)
+            {
+                if (!thisBucket.Span.SequenceEqual<char>(otherBucket.Span))
+                {
+                    return false;
+                }
+            }
+
+            //encase this length is different.
+            return thisBucket.Span.SequenceEqual<char>(otherBucket.Span);
         }
 
         // Set methods: 
@@ -735,7 +746,7 @@ namespace StringHelper
         /// <summary>
         /// Finds the bucket that logically follows the 'bucket' bucket.  
         /// </summary>
-        private Bucket Next(Bucket bucket)
+        internal Bucket Next(Bucket bucket)
         {
             return FindBucketForIndex(bucket.OffsetLength);
         }
@@ -891,7 +902,7 @@ namespace StringHelper
                     }
 
                     _buckets[bucketIndex] = new Bucket(replacementChars, index, targetOffset, bucketIndex);
-                    _bucketIndex = bucketIndex+ 1 ;
+                    _bucketIndex = bucketIndex + 1;
                 }
                 else
                 {
@@ -938,8 +949,8 @@ namespace StringHelper
                     int index = _bucketIndex;
                     int offset = _totalOffset;
                     _buckets[index] = new Bucket(buffer, pos, offset, index);
-                    _bucketIndex = index+1;
-                    _totalOffset = offset+ pos;
+                    _bucketIndex = index + 1;
+                    _totalOffset = offset + pos;
                     _bufferPos = 0;
                 }
 
@@ -963,7 +974,7 @@ namespace StringHelper
 #else
 
                     //better performance for CLR
-                   Array.Copy(_buckets, 0, newItems, 0, index);
+                    Array.Copy(_buckets, 0, newItems, 0, index);
 #endif
                 }
                 _buckets = newItems;
@@ -975,10 +986,17 @@ namespace StringHelper
             unchecked
             {
                 int hash = 0;
-                for (var i = 0; i < _bufferPos; i++)
+
+                var buffer = FindBucketForIndex(0);
+                while (buffer.Length > 0)
                 {
-                    hash += _buffer[i];
+                    for (var i = 0; i < buffer.Length; i++)
+                    {
+                        hash += buffer.Buffer[i];
+                    }
+                    buffer = Next(buffer);
                 }
+
                 return 31 * hash + this.Length;
             }
         }
