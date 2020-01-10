@@ -77,10 +77,10 @@ namespace Benchmark.Core
 
         #region BIGString
 
-        private readonly static string str1 = new string('a', 1234);
-        private readonly static string str2 = new string('b', 32);
-        private readonly static string str3 = new string('c', 2341);
-        private readonly static string str4 = new string('d', 5000);
+        private readonly static string str1 = new string('a', 342);
+        private readonly static string str2 = new string('b', 132);
+        private readonly static string str3 = new string('c', 1341);
+        private readonly static string str4 = new string('d', 1200);
 
         ////[Benchmark]
         ////public string Large_String_Interpolated()
@@ -223,10 +223,18 @@ namespace Benchmark.Core
             _bigArray1 = new char[char.MaxValue];
             _bigArray2 = new char[char.MaxValue];
             _bigArray3 = new char[char.MaxValue];
-            for (var i = 0; i < char.MaxValue; i++)
+            for (var i = 33; i < 127; i++)
             {
                 _bigArray1[i] = (char)i;
+            }
+
+            for (var i = 0; i < 127; i++)
+            {
                 _bigArray2[i] = (char)i;
+            }
+
+            for (var i = 0; i < char.MaxValue; i++)
+            {
                 _bigArray3[i] = (char)i;
             }
         }

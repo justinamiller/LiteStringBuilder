@@ -80,9 +80,9 @@ namespace StringHelper
 
         public LiteStringBuilder_Refactor(int initialCapacity = DefaultCapacity)
         {
-            int capacity = initialCapacity > 0 ? initialCapacity : DefaultCapacity;
-            _buffer = Pool_Instance.Rent(capacity);
-            _charsCapacity = _buffer.Length;
+            var buffer = Pool_Instance.Rent(initialCapacity > 0 ? initialCapacity : DefaultCapacity);
+            _charsCapacity = buffer.Length;
+            _buffer = buffer;
         }
 
         public LiteStringBuilder_Refactor(string value)
@@ -112,11 +112,7 @@ namespace StringHelper
         {
             var buffer = ctx.Item1;
             var pos = ctx.Item2;
-
-            if (pos > 0)
-            {
-                new Span<char>(buffer, 0, pos).TryCopyTo(span);
-            }
+           new Span<char>(buffer, 0, pos).TryCopyTo(span);
         };
 #else
         private static string AllocateString(int length)
@@ -139,35 +135,29 @@ namespace StringHelper
 
         public override string ToString()
         {
-            int totalLength = Length;
-            if (totalLength == 0)
+            int length = Length;
+            if (length == 0)
             {
                 return string.Empty;
             }
 
+            var buffer = _buffer;
 #if NETCOREAPP3_0 || NETSTANDARD2_1
-            return string.Create(totalLength, (_buffer, _bufferPos), StringCreationAction);
+            return string.Create(length, (buffer, length), StringCreationAction);
 #else
-            int pos = _bufferPos;
-            int size;
-
-            string allocString = FastAllocateString(totalLength);
+            string allocString = FastAllocateString(length);
 
             unsafe
             {
                 fixed (char* destPtr = allocString)
                 {
-                    var ptr = (byte*)&destPtr[0];
-                    if (pos > 0)
-                    {
-                        size = pos * 2;
-                        fixed (char* sourcePtr = &_buffer[0])
+                        int size = length * 2;
+                        fixed (char* sourcePtr = &buffer[0])
                         {
-                            Buffer.MemoryCopy((byte*)sourcePtr, ptr, size, size);
+                            Buffer.MemoryCopy((byte*)sourcePtr, (byte*)destPtr, size, size);
                         }
                     }
                 }
-            }
             return allocString;
 #endif
         }
@@ -180,19 +170,24 @@ namespace StringHelper
         {
             // Check for null
             if (other is null)
+            {
                 return false;
+            }
 
             // Check for same reference
             if (ReferenceEquals(this, other))
+            {
                 return true;
-
+            }
+         
             // Check for same Id and same Values
             if (other.Length != this.Length)
             {
                 return false;
             }
 
-            for (var i = 0; i < _bufferPos; i++)
+            var pos = _bufferPos;
+            for (var i = 0; i < pos; i++)
             {
                 if (!this._buffer[i].Equals(other._buffer[i]))
                 {
@@ -229,6 +224,8 @@ namespace StringHelper
         ///<summary>Reset the string to empty</summary>
         public LiteStringBuilder_Refactor Clear()
         {
+            Pool_Instance.Return(_buffer);
+            _buffer = Pool_Instance.Rent(DefaultCapacity);
             _bufferPos = 0;
             return this;
         }
@@ -343,7 +340,9 @@ namespace StringHelper
             {
                 EnsureCapacity(length);
                 int pos = _bufferPos;
-                value.AsSpan().TryCopyTo(new Span<char>(_buffer, pos, length));
+                var buffer = _buffer;
+                value.AsSpan().TryCopyTo(new Span<char>(buffer, pos, length));
+                _buffer = buffer;
                 _bufferPos = pos + length;
             }
             return this;
@@ -706,17 +705,15 @@ namespace StringHelper
 
             int index = 0;
             char[] replacementChars = null;
-            int replaceIndex = 0;
+            bool hasReplacementChars = false;
             bool isToReplace = false;
             unsafe
             {
                 fixed (char* oldPtr = oldStr)
                 {
-
                     // Create the new string into _replacement
                     for (int i = 0; i < pos; i++)
                     {
-   
                         if (buffer[i] == oldPtr[0]) // If first character found, check for the rest of the string to replace
                         {
                             int k = 1;//skip one char
@@ -729,8 +726,9 @@ namespace StringHelper
                         if (isToReplace) // Do the replacement
                         {
                             isToReplace = false;
-                            if (replaceIndex == 0)
+                            if (!hasReplacementChars)
                             {
+                                hasReplacementChars = true;
                                 if (newStrLength > oldstrLength)
                                 {
                                     int deltaLength = oldstrLength > newStrLength ? oldstrLength - newStrLength : newStrLength - oldstrLength;
@@ -750,14 +748,13 @@ namespace StringHelper
                                 index = i;
                             }
 
-                            replaceIndex++;
                             i += oldstrLength - 1;
                             for (int k = 0; k < newStrLength; k++)
                             {
                                 replacementChars[index++] = newStr[k];
                             }
                         }
-                        else if (replaceIndex > 0)// No replacement, copy the old character
+                        else if (hasReplacementChars)// No replacement, copy the old character
                         {
                             //could batch these up instead one at a time!
                             replacementChars[index++] = buffer[i];
@@ -765,15 +762,16 @@ namespace StringHelper
                     }//end for
                 }
             }
-            if (replaceIndex > 0)
+            if (hasReplacementChars)
             {
                 // Copy back the new string into _chars
                 EnsureCapacity(index - pos);
                 //   Buffer.BlockCopy(replacementChars, 0, _buffer, 0, index * 2);
 
-                new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(_buffer));
+                new Span<char>(replacementChars, 0, index).TryCopyTo(new Span<char>(buffer));
 
                 Pool_Instance.Return(replacementChars);
+                _buffer = buffer;
                 _bufferPos = index;
             }
 
@@ -787,20 +785,22 @@ namespace StringHelper
         {
             int capacity = _charsCapacity;
             int pos = _bufferPos;
-            if (pos + appendLength > capacity)
+            int newCapacity = pos + appendLength;
+            if (newCapacity > capacity)
             {
+                var buffer = _buffer;
                 //capacity = capacity + appendLength + 1;
                 //capacity = (int)((capacity + appendLength) * 1.5);
                 //    capacity = Utilities.GetPaddedCapacity( capacity + appendLength);
-                int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
+            //    int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
                 char[] newBuffer = Pool_Instance.Rent(newCapacity);
                 if (pos > 0)
                 {
                     //copy data
-                    new Span<char>(_buffer, 0, _bufferPos).TryCopyTo(new Span<char>(newBuffer));
+                    new Span<char>(buffer, 0, pos).TryCopyTo(new Span<char>(newBuffer));
                     //   Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _bufferPos * 2);
                 }
-                Pool_Instance.Return(_buffer);
+                Pool_Instance.Return(buffer);
 
                 _buffer = newBuffer;
                 _charsCapacity = newBuffer.Length;
@@ -809,14 +809,16 @@ namespace StringHelper
 
         public override int GetHashCode()
         {
+            var pos = _bufferPos;
+            var buffer = _buffer;
             unchecked
             {
                 int hash = 0;
-                for (var i = 0; i < _bufferPos; i++)
+                for (var i = 0; i < pos; i++)
                 {
-                    hash += _buffer[i].GetHashCode();
+                    hash += buffer[i].GetHashCode();
                 }
-                return 31 * hash + _bufferPos;
+                return 31 * hash + pos;
             }
         }
     }

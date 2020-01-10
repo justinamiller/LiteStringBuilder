@@ -722,12 +722,15 @@ namespace StringHelper
         {
             int capacity = _charsCapacity;
             int pos = _bufferPos;
-            if (pos + appendLength > capacity)
+
+            int newCapacity = pos + appendLength;
+            if (newCapacity > capacity)
             {
                 //capacity = capacity + appendLength + 1;
                 //capacity = (int)((capacity + appendLength) * 1.5);
                 //    capacity = Utilities.GetPaddedCapacity( capacity + appendLength);
-                int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
+                //  int newCapacity = capacity + appendLength + DefaultCapacity - (capacity - pos);
+
                 char[] newBuffer = Pool_Instance.Rent(newCapacity);
                 if (pos > 0)
                 {
